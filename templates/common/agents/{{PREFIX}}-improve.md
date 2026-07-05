@@ -34,6 +34,10 @@ and you do **not** touch this project's source.
   `{{PREFIX}}`/`{{PACKAGE}}`/`platform:`/`tool:` template conventions intact (do not bake project specifics).
 - A change-log entry text saved to `mp_repo/.ai/proposals/<slug>.changelog` (id `YYYY-MM-DDTHH:MM-<slug>`,
   per the README format, `by: {{PREFIX}}-improve`).
+- Twin check: if a twin-pipeline registry exists (`$BRAIN/pipelines/TWINS.md` — the mp<->me
+  artifact map), decide whether this improvement also applies to the twin pipeline and fill
+  `twin_applicability` in the PROPOSAL block. Respect the registry's NOT-TWINS section. You do
+  NOT port it yourself — `/brain sync-twins` stages ports on the other side.
 
 ## Hard rules
 - Edit only files under `templates/` in the patch. Generated trees + project source are off-limits.
@@ -52,7 +56,8 @@ and you do **not** touch this project's source.
   "changelog_file": ".ai/proposals/tester-instrumented-idle-wait.changelog",
   "summary": "<one line>",
   "rationale": "<why it helps every project>",
-  "apply_check": "ok"
+  "apply_check": "ok",
+  "twin_applicability": {"applicable":"yes|no|unknown","twin_target":"<artifact in the twin pipeline, per TWINS.md>","why":"<one line>"}
 }
 === END PROPOSAL ===
 ```

@@ -33,6 +33,14 @@ For each candidate lesson, classify it:
   question rounds", "wants Russian UI everywhere"). → Write it to the **cross-project user
   profile**: `$MP_USER_PROFILE` or `~/.config/mobile-pipeline/user-profile.md` (see format below).
   The /mp and /mp-spec grills read this file to bias their recommended answers.
+- **BRAIN-LEVEL** — generalizes beyond mobile-pipeline projects: a domain lesson (Android,
+  testing, tooling), a cross-pipeline pattern, or a fact about the user's whole system that
+  would help even non-/mp projects. → If a second-brain repo is configured (`$BRAIN`
+  env var pointing at it), APPEND a candidate block to `$BRAIN/inbox/<YYYY-MM-DD>-<project>.md`
+  (format: `$BRAIN/inbox/README.md`; `status: NEW`) and emit a `brain_candidates[]` entry.
+  Promotion into curated brain files is human-gated (`/brain promote`) — NEVER edit
+  `$BRAIN/core|domains|pipelines` directly. If `$BRAIN` is not set, fall back to
+  USER-PREFERENCE or PLUGIN-LEVEL routing.
 - **PLUGIN-LEVEL** — a rule that is wrong, missing, or unclear in a **generic** `mp-*` agent or the
   `/mp` orchestrator itself, i.e. it would help *every* project on the plugin. → Do NOT edit
   the plugin (it's read-only, lives in the marketplace). Instead emit a `plugin_improvements[]` entry;
@@ -46,8 +54,9 @@ the precise change.
 
 ## The user profile (cross-project, format)
 
-Path: `$MP_USER_PROFILE` or `~/.config/mobile-pipeline/user-profile.md`. Create it with this
-skeleton on the first USER-PREFERENCE lesson if missing:
+Path resolution (first that exists/resolves): `$MP_USER_PROFILE` → `$BRAIN/core/user-profile.md`
+(when a second-brain repo is configured) → `~/.config/mobile-pipeline/user-profile.md`. Create it
+with this skeleton on the first USER-PREFERENCE lesson if missing:
 
 ```markdown
 # Mobile-pipeline user profile
@@ -81,8 +90,8 @@ the old one in the provenance trail (`(was: <old>, <project>, <date>)`). Keep th
 - **Never delete** existing content (global file-safety rule). Append/refine; keep memory files ≤30 lines.
 - Update the memory index only when you create a NEW file (rare).
 - For a project override, write/extend `.claude/mp/extras/<agent>.md` — the smallest rule that fixes it.
-- For a user preference, follow the profile format + merge rules above; the profile is the ONLY
-  file you may write outside this project.
+- For a user preference, follow the profile format + merge rules above. The user profile and
+  `$BRAIN/inbox/` are the ONLY locations you may write outside this project.
 
 ## Return — one JSON object
 ```
@@ -93,7 +102,10 @@ the old one in the provenance trail (`(was: <old>, <project>, <date>)`). Keep th
   ],
   "plugin_improvements": [
     {"target":"templates/android/agents/mp-tester-android.md","problem":"<one line>","proposed_change":"<one line>","rationale":"<why it helps every project>"}
+  ],
+  "brain_candidates": [
+    {"scope":"domain|pipeline|core|project-card","text":"<one bullet, English>","evidence":"<project, what happened>","suggested_file":"brain/domains/<topic>.md"}
   ]
 }
 ```
-No-op: `{"updated":[],"plugin_improvements":[],"reason":"routine — no new patterns"}`.
+No-op: `{"updated":[],"plugin_improvements":[],"brain_candidates":[],"reason":"routine — no new patterns"}`.
