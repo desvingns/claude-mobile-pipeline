@@ -119,6 +119,13 @@ To avoid collisions, work is split by file ownership; the seams are pinned in
 `sync-state.json` shape; and the `lib/sync.sh` input/output contract. All four are specified in
 `.ai/tasks/codex-001-dual-tool.md`.
 
+## Second brain (cross-project knowledge)
+
+Cross-project knowledge lives in `D:/Pet/brain` (private repo `github.com/desvingns/brain`);
+entry point `INDEX.md`, this repo's card: `brain/projects/mobile-pipeline.md`. Lessons that
+generalize beyond cmp go to `brain/inbox/` (see the `/brain` skill); promotion is human-gated.
+Project-local knowledge stays in `.ai/memory/` as before.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

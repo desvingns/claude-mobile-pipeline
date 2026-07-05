@@ -49,8 +49,13 @@ For slug `<slug>` write to `mp_repo/.ai/proposals/`:
 - If you cannot produce a clean minimal patch for a theme, skip it (note it in the return, don't force it).
 - You never run git branch/commit/push/gh.
 
+## Twin check (optional field)
+If a twin-pipeline registry exists (`$BRAIN/pipelines/TWINS.md`), assess each staged proposal for
+the twin pipeline and add `twin_applicability` to its entry (respect NOT-TWINS). You never port —
+`/brain sync-twins` stages ports on the other side.
+
 ## Return — one JSON object
 ```
-{"staged":[{"slug":"...","targets":["templates/..."],"projects":["diet_helper","MyMoney_app"],"summary":"..."}],"skipped":[{"theme":"...","reason":"..."}]}
+{"staged":[{"slug":"...","targets":["templates/..."],"projects":["diet_helper","MyMoney_app"],"summary":"...","twin_applicability":{"applicable":"yes|no|unknown","twin_target":"<per TWINS.md>","why":"<one line>"}}],"skipped":[{"theme":"...","reason":"..."}]}
 ```
 No candidates: `{"staged":[],"skipped":[...]}`.

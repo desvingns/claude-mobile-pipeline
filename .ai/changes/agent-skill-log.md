@@ -382,3 +382,11 @@ summary: version-bump snippet replaced `sed -i` with the write-to-temp + mv patt
 reason: the merged version-bump-on-commit snippet used `sed -i`, which violates the golden rule (GNU vs BSD sed differ); rewrite to `sed ... > $TMP && mv $TMP $GRADLE` for cross-platform safety
 affects: claude, codex
 by: claude
+
+## 2026-07-05T09:55-brain-level-routing-and-twins
+type: add
+target: templates/common/agents/{{PREFIX}}-knowledge.md, templates/common/agents/{{PREFIX}}-improve.md, templates/common/agents/{{PREFIX}}-reflect.md
+summary: BRAIN-LEVEL routing class + brain_candidates[] in knowledge; optional twin_applicability in improve/reflect payloads; user-profile path now resolves $MP_USER_PROFILE -> $BRAIN/core/user-profile.md -> ~/.config/mobile-pipeline/user-profile.md
+reason: a second-brain repo (github.com/desvingns/brain) now carries cross-project knowledge; lessons that generalize beyond mobile-pipeline projects route to $BRAIN/inbox (human-gated promotion via /brain promote), and improve/reflect proposals declare applicability to the twin me-dev pipeline so /brain sync-twins can stage ports on the other side
+affects: claude, codex
+by: claude

@@ -6,6 +6,24 @@ This repo uses [Semantic Versioning](https://semver.org/) — see `README.md` �
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-07-05
+
+### Added
+- **Second-brain integration** (`{{PREFIX}}-knowledge`, `{{PREFIX}}-improve`, `{{PREFIX}}-reflect`).
+  New BRAIN-LEVEL routing class in the knowledge agent: lessons that generalize beyond
+  mobile-pipeline projects are appended as candidates to `$BRAIN/inbox/` (a private cross-project
+  knowledge repo, e.g. `github.com/desvingns/brain`) and reported via a new `brain_candidates[]`
+  output field; promotion into curated brain files stays human-gated (`/brain promote`).
+- **Twin-pipeline awareness** (`{{PREFIX}}-improve`, `{{PREFIX}}-reflect`). Proposals now carry an
+  optional `twin_applicability` field (applicable / twin_target / why) resolved against
+  `$BRAIN/pipelines/TWINS.md`, so `/brain sync-twins` can stage ports into the twin me-dev
+  pipeline. No behavior change when `$BRAIN` is not configured.
+
+### Changed
+- **User-profile path resolution** (`{{PREFIX}}-knowledge`): `$MP_USER_PROFILE` →
+  `$BRAIN/core/user-profile.md` (when a second brain is configured) →
+  `~/.config/mobile-pipeline/user-profile.md`.
+
 ## [1.10.0] - 2026-06-27
 
 ### Added
