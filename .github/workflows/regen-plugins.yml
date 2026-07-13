@@ -8,16 +8,24 @@ name: regen-plugins
 # Normally a no-op: the validate-plugins drift gate forces PRs to land in sync. This is the
 # safety net for direct pushes to main (or a merge that slipped past the gate).
 #
-# Loop guard: the bot commit touches only claude-plugins/ + codex-plugins/, which do not match
-# the paths filter below — it cannot re-trigger this workflow.
+# Loop guard: generated plugin trees and root marketplace metadata do not match the canonical-source
+# paths below. The generated Codex manifest under templates/dev is explicitly excluded, so the bot
+# commit cannot re-trigger this workflow.
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'templates/**'
+      - '!templates/dev/codex/.codex-plugin/plugin.json'
       - 'lib/build-marketplace.sh'
       - 'lib/render.sh'
+      - 'VERSION'
+      - '.github/workflows/regen-plugins.yml'
+
+concurrency:
+  group: regen-plugins-main
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -29,18 +37,38 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Regenerate plugin trees from templates
-        run: bash lib/build-marketplace.sh
+        run: |
+          set -e
+          tracked=(
+            claude-plugins
+            codex-plugins
+            .claude-plugin/marketplace.json
+            templates/dev/codex/.codex-plugin/plugin.json
+          )
+          bash lib/build-marketplace.sh >/dev/null
+          git diff --binary -- "${tracked[@]}" > "$RUNNER_TEMP/regen-first.diff"
+          bash lib/build-marketplace.sh >/dev/null
+          git diff --binary -- "${tracked[@]}" > "$RUNNER_TEMP/regen-second.diff"
+          cmp -s "$RUNNER_TEMP/regen-first.diff" "$RUNNER_TEMP/regen-second.diff" || {
+            echo "::error::marketplace regeneration is not idempotent"; exit 1;
+          }
 
       - name: Commit and push if drifted
         run: |
           set -e
-          if git diff --quiet --ignore-cr-at-eol -- claude-plugins codex-plugins; then
+          tracked=(
+            claude-plugins
+            codex-plugins
+            .claude-plugin/marketplace.json
+            templates/dev/codex/.codex-plugin/plugin.json
+          )
+          if git diff --quiet --ignore-cr-at-eol -- "${tracked[@]}"; then
             echo "plugin trees already in sync — nothing to do"
             exit 0
           fi
           git config user.name  "mp-regen-bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add claude-plugins codex-plugins
+          git add -- "${tracked[@]}"
           git commit -m "chore: regenerate plugin trees from templates [auto]"
           git push
           echo "::notice::plugin trees regenerated and pushed"

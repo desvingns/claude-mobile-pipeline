@@ -12,6 +12,8 @@ desktop.ini
 *.swp
 *.swo
 *~
+__pycache__/
+*.pyc
 
 # Local notes / scratch
 SCRATCH.md
@@ -31,6 +33,8 @@ smoke-test/
 
 # Graphify generated knowledge graph (local; rebuild: graphify update .)
 graphify-out/
+archive/graphify/
+archive/marketplace/
 
 # Self-improvement loop: raw telemetry (retro digests + lessons.md are tracked)
 selfimprove/runs/*.jsonl

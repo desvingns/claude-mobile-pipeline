@@ -46,7 +46,7 @@ lib/sync.sh               # (to be built) consume .ai/changes/ → regenerate pe
 templates/common/         # tool- & platform-neutral: architect, docs, reviewer-base, maintainer, the orchestrator command, memory, root docs
 templates/android/        # Android specialists, scripts (runner/reviewer .sh), memory, snippets
 templates/ios/            # iOS specialists (stubs — being fleshed out)
-templates/spec/           # GLOBAL spec-creation tool: app-spec-creator skill + 17 neutral spec agents + prompt library + codex/ adapters (installed by install-spec.sh — see docs/SPEC-PIPELINE.md)
+templates/spec/           # GLOBAL spec-creation tool: app-spec-creator skill + 22 neutral spec agents + prompt library + codex/ adapters (installed by install-spec.sh — see docs/SPEC-PIPELINE.md)
 templates/dev/codex/      # Codex mp-dev skill bridge + per-project native .codex/agents/mp-*.toml shim templates
 docs/                     # USAGE, ARCHITECTURE, UPGRADE, ADDING-PLATFORM, local-llm (design notes)
 .ai/                      # shared cross-tool workspace (memory / handoff / tasks / changes) — see .ai/README.md
@@ -77,7 +77,9 @@ Why this way (industry best practice): see `.ai/memory/dual-tool-architecture.md
 All cross-tool coordination lives in `.ai/` (git-tracked). Read `.ai/README.md` for the full
 protocol. In short, **every session**:
 
-1. **Start** — read this file → `.ai/handoff.md` → `.ai/memory/MEMORY.md` → open `.ai/tasks/*`.
+1. **Start** — read this file → `.ai/handoff.md` → `.ai/memory/MEMORY.md` →
+   `.ai/tasks/INDEX.md` → only the task files listed under `ACTIVE`. Historical task files are
+   audit records and are opened on demand, never bulk-loaded.
 2. **During** — keep your task file's `STATUS` current; log each agent/skill/template edit in
    `.ai/changes/agent-skill-log.md` (format: `.ai/changes/README.md`).
 3. **Hand-off / end** — rewrite `.ai/handoff.md` (DONE / DECISIONS / NEXT / OWNER / BLOCKERS)

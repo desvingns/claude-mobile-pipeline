@@ -1,0 +1,2 @@
+{"ts":"2026-01-01T00:00:00Z","project":"fixture","agent":"reviewer","model":"legacy","verdict":"pass","metric":"violations=0","retry":0,"note":"","tokens_in":100,"tokens_out":20,"cost":"approx","usage_source":"estimated"}
+{"ts":"2026-01-01T00:01:00Z","project":"fixture","agent":"feedback","model":"","verdict":"pass","metric":"score=5","retry":0,"note":""}

@@ -21,7 +21,8 @@ This skill **supersedes** `app-tdd-creator` (which produced only a single TDD). 
 
 This skill produces the **spec bundle** and (on request) triggers the handoff. It does **not** write production Kotlin/Swift, Compose/SwiftUI, or run builds — that is the dev pipeline's job, fed by the handoff. If asked to code during this run, defer: «Этот скилл готовит спеку и хендофф. Кодогенерация — в дев-пайплайне (`/<prefix>`).»
 
-**Personal-project scope.** This is personal tooling. Never pull in work/corporate agents or skills (no `testing`, no jira/confluence/slack/bitbucket agents, no `strikerz-*` plugins).
+**Personal-project scope.** This is personal tooling. Never pull in organization-specific work
+agents, skills, issue trackers, chat systems, or private plugins.
 
 ## Prompt library (include-by-reference)
 
@@ -45,7 +46,9 @@ This skill runs under **both** Claude Code and Codex CLI. The orchestration is i
 - None of the above, or `--greenfield` → **greenfield** mode.
 - `--mode feature|greenfield|clone` overrides detection.
 
-**Flags** (superset of app-tdd-creator's): `--name`, `--depth {mvp|production|reference}`, `--platforms` (default `android`), `--base` (output root; default `~/AppSpecs` — a personal folder you control, kept separate from any unrelated work context), `--resume`, `--fresh`, `--dry-run`, `--skip-play`, `--skip-apk`, `--only <list>`, `--no-bridge` (stop after bundle, don't offer handoff), `--graph` / `--no-graph` (force-on / force-off the dynamic reference crawl — see Phase A.0), `--no-grill` (escape hatch: skip the design-tree interrogation that otherwise runs in greenfield and over clone ambiguities — see Phase A). **Feature-mode flags:** `--feature` (force brownfield mode), `--board <dir>` (target SPEC board; default the project's auto-detected `.claude/specs/backlog/`), `--epic <slug>` (epic name; else derived from the feature title).
+**Flags** (superset of app-tdd-creator's): `--name`, `--depth {mvp|production|reference}`, `--budget {lean|balanced|max}` (default `balanced`; controls model/critic spend, never removes mandatory artifacts or gates), `--platforms` (default `android`), `--base` (output root; default `~/AppSpecs` — a personal folder you control, kept separate from any unrelated work context), `--resume`, `--fresh`, `--dry-run`, `--skip-play`, `--skip-apk`, `--only <list>`, `--only-failed-rubrics` (resume an evaluator failure and rerun only owning artifacts/check classes), `--no-bridge` (stop after bundle, don't offer handoff), `--graph` / `--no-graph` (force-on / force-off the dynamic reference crawl — see Phase A.0), `--no-grill` (escape hatch: skip the design-tree interrogation that otherwise runs in greenfield and over clone ambiguities — see Phase A). **Feature-mode flags:** `--feature` (force brownfield mode), `--board <dir>` (target SPEC board; default the project's auto-detected `.claude/specs/backlog/`), `--epic <slug>` (epic name; else derived from the feature title).
+
+**Budget semantics (quality-preserving):** `lean` uses the cheapest assigned model for deterministic/mechanical roles, one evaluator pass, and frontier escalation only for low-confidence multimodal or blocker findings; `balanced` uses the installed role map; `max` adds an independent critic for high-risk security/payment/migration decisions and low-confidence screenshot conclusions. All modes retain GATE 1, traceability, evaluator blocker handling, and GATE 2. Record the selected budget in `pipeline/00_meta.yaml`; do not silently downgrade a role after work begins.
 
 **Depth default:** clone mode defaults to `--depth reference` (full visual + behavioural fit — turns on the per-screen fit checklist + the downstream `/<prefix> --fit` gate); greenfield defaults to `--depth production`. Override with `--depth`.
 
@@ -70,6 +73,8 @@ Base: `<BASE>\<APP>\` (where `<BASE>` = `--base` or default personal folder). La
 │   └── interview\          (greenfield: grill.md + stage1.yaml … stage5.yaml)
 ├── pipeline\               (raw agent outputs 01..07 + elicitation.md, grill.md (clone), eval_report.md)
 │   ├── 00_meta.yaml
+│   ├── cache\              (content-addressed input manifests + per-phase fingerprints)
+│   ├── evidence\           (compact ID-based packets passed to specialist fan-outs)
 │   └── user_answers_q*.yaml
 └── spec\                   ← the shared bundle (what the bridge consumes)
     ├── 00_manifest.yaml
@@ -82,6 +87,23 @@ Base: `<BASE>\<APP>\` (where `<BASE>` = `--base` or default personal folder). La
 ```
 
 Existence handling (`--fresh` / `--resume` / ask) — same as app-tdd-creator Step 1. Init `pipeline/00_meta.yaml` (app, mode, platforms, base, schema_version, phases_completed[], started_utc) and `spec/00_manifest.yaml` (see `prompts/templates/00_manifest.tmpl.yaml`).
+
+### Content-addressed resume and cache (hard)
+
+Resolve `scripts/spec-cache.sh` beside this skill and use it before every agent phase. Run
+`fingerprint pipeline/cache <phase> <only the source inputs for that phase>`; then `check` the returned
+fingerprint. A hit is reusable only when every declared output exists and validates against its schema.
+On a miss, run the phase and call `record` only after its outputs validate. Never reuse by file existence
+alone. Cache manifests are auditable evidence and stay under `pipeline/cache/`; they never include secrets,
+credentials, decoded APK binaries, or generated outputs. `--fresh` bypasses hits but preserves prior cache
+history; `--only-failed-rubrics` requires a matching upstream inventory fingerprint and otherwise falls back
+to the normal owning-agent rerun.
+
+Suggested phase inputs: intake = normalized screenshots/APK hash/Play snapshot/interview answers; inventory =
+intake JSON + grill ledger; requirements = locked inventory + constitution; design = inventory + analyzer
+facts; quality = compact evidence packet + posture; evaluator = validated artifact hashes. Include the prompt
+library version IDs and model assignment in each fingerprint so a prompt/model upgrade invalidates only the
+affected phase.
 
 If `--dry-run` — print planned phases + gates, stop.
 
@@ -207,6 +229,15 @@ If a grill ledger exists (`input/interview/grill.md` or `pipeline/grill.md`), re
 
 Write the confirmed inventory to `pipeline/feature-inventory.json` (the neutral merge format). Clone derives it from analyzer JSON; greenfield from interview YAML. Everything C–F reads this — identical regardless of mode.
 
+Then build `pipeline/evidence/core.json`: one compact, ID-based packet containing the locked inventory,
+resolved decisions, source/provenance pointers, confidence, posture flags, and hashes/paths of larger
+artifacts. Specialists receive this packet plus the ONE rubric they own; they do not receive the full chat,
+raw file dumps, unrelated analyzer payloads, or other quality rubrics. Deduplicate equivalent facts before
+assigning IDs. Keep large text/images on disk and pass paths + hashes + the minimum cited excerpt/crop.
+Record each specialist with `scripts/spec-usage.sh pipeline/agent-usage.jsonl ...`. Prefer provider-reported
+token counts; when unavailable, pass input/output character counts and let the script emit a clearly marked
+estimate. Include phase, role, model, reasoning effort, duration, retry, cache hit, and one correlation ID.
+
 ## Step 5 — Phase C: requirements + stories + acceptance
 
 1. `constitution-author` (haiku) → `spec/constitution.md` — `Read prompt templates/constitution.tmpl.md`. Generated **from** the target project's existing CLAUDE.md/memory when present (not a competing source of truth).
@@ -233,7 +264,21 @@ Write the confirmed inventory to `pipeline/feature-inventory.json` (the neutral 
 
 ## Step 7 — Phase E: quality artifacts (parallel fan-out)
 
-One message, parallel: `nfr-analyzer`, `a11y-reviewer`, `security-privacy-reviewer`, `analytics-taxonomy-designer`, `risk-estimator` (writes both `risks.md` + `estimate.md`). Each reads `feature-inventory.json` + posture answers + relevant rubric, writes its artifact, returns JSON.
+First write `pipeline/quality-plan.json` from the locked posture/risk flags. Every bundle still contains
+every required quality artifact, but specialist calls are conditional and auditable:
+
+- always run `nfr-analyzer`, `a11y-reviewer`, and `risk-estimator` (the latter writes both `risks.md` + `estimate.md`);
+- run `security-privacy-reviewer` when the inventory contains authentication, sensitive/personal data,
+  permissions, network/backend access, payments, sharing, or external SDKs; otherwise the main session
+  renders the rubric's explicit low-risk/not-applicable artifact without inventing threats;
+- run `analytics-taxonomy-designer` when analytics is requested or an analytics SDK/event requirement is
+  present; otherwise render an explicit `analytics: disabled` artifact with the decision provenance;
+- under `--budget max`, add an independent critic only for high-risk security/payment/migration decisions;
+  under `lean`, mechanical roles use the cheapest installed tier and escalate on low confidence/blockers.
+
+Fan out the selected specialists in one message. Each reads `pipeline/evidence/core.json` + the ONE relevant
+rubric, writes its artifact, and returns compact JSON. Persist the chosen/skipped roles and reasons in
+`quality-plan.json`; a skipped call never means a missing artifact.
 
 **Clone mode, depth ≥ reference:** also fan out `fit-checklist-author` (opus, multimodal) → `spec/fit/<Sxx>.md` (per-screen visual + behavioural must-match checklists, each grounded in its reference screenshot), `spec/fit/registry.csv` (screen ↔ reference image ↔ FR/AC), and a `spec/deviations.md` stub (intended deviations from the reference). This is the contract the build-time `/<prefix> --fit` gate later checks the running app against — so the clone converges to the reference instead of drifting (the failure mode that produced the 7 MyMoney↔Monefy divergences).
 
@@ -241,8 +286,14 @@ One message, parallel: `nfr-analyzer`, `a11y-reviewer`, `security-privacy-review
 
 ## Step 8 — Phase F: evaluate (evaluator-optimizer) + traceability
 
-1. `spec-evaluator` (opus, **read-only**) → `spec/traceability.csv` + `pipeline/eval_report.md`. `Read prompt rubrics/evaluator-rubric.md`. Five check classes: cross-artifact consistency / grounding (no ungrounded requirement) / completeness / constitution contradictions / **affordance coverage** (clone, when `input/crawl/elements/` or `spec/fit/elements/` exists — every interactive element observed in the reference maps to an inventory feature/CTA or an explicit decision; unmatched = blocker). In **clone mode** the evaluator runs clone-strict: `orphan_screen` and `state_coverage_gap` escalate warn → blocker. Returns `{verdict, findings[], coverage}`.
-2. **Optimize loop:** on any `blocker` finding, re-invoke **only the owning agent(s)** (parsed from `finding.artifact`) with the findings as input. **Max 2 retries.** Still failing → stop, show residual blockers, ask the user for guidance (mirror `/cmp` Step 4 behaviour). `warn`/`info` never block — they land in `risks.md` / design open-questions tagged `(assumption)`.
+0. Run `scripts/spec-preflight.sh spec [--clone] --out pipeline/eval-preflight.json` first. A
+   mechanical failure goes directly to the owning artifact; do not spend a frontier critic call explaining
+   malformed JSON, duplicate IDs, broken references, or missing required files.
+1. `spec-evaluator` (opus, **read-only**) → `spec/traceability.csv` + `pipeline/eval_report.md`. `Read prompt rubrics/evaluator-rubric.md`. Pass `pipeline/evidence/core.json`, artifact hashes, and preflight results — not raw chat/history. Five check classes: cross-artifact consistency / grounding (no ungrounded requirement) / completeness / constitution contradictions / **affordance coverage** (clone, when `input/crawl/elements/` or `spec/fit/elements/` exists — every interactive element observed in the reference maps to an inventory feature/CTA or an explicit decision; unmatched = blocker). In **clone mode** the evaluator runs clone-strict: `orphan_screen` and `state_coverage_gap` escalate warn → blocker. Returns `{verdict, findings[], coverage, checked_classes[], confidence}`.
+2. **Disagreement gate:** when two analyzers disagree on a high-impact fact, or a screenshot conclusion
+   that drives navigation/business rules remains low-confidence, request one independent focused opinion on
+   that fact only. Record both claims, evidence, and the reconciled decision; never rerun the entire analyzer.
+3. **Optimize loop:** on any `blocker` finding, re-invoke **only the owning agent(s)** (parsed from `finding.artifact`) with the failed check classes + findings as input. **Max 2 retries.** With `--only-failed-rubrics`, verify that upstream hashes match, then run exactly this targeted path. Still failing → stop, show residual blockers, ask the user for guidance (mirror `/cmp` Step 4 behaviour). `warn`/`info` never block — they land in `risks.md` / design open-questions tagged `(assumption)`.
 
 ## Step 9 — GATE 2: final acceptance (human)
 
@@ -277,7 +328,7 @@ Unless `--no-bridge`: tell the user the bundle is ready and how to hand it off t
 
 ## Step 11 — Report
 
-Open the bundle folder (`Start-Process explorer.exe "<BASE>\<APP>"`). Final Russian summary: bundle path, mode, screen/feature/entity counts, artifact list with line counts, evaluator verdict + coverage, per-agent token totals (keep app-tdd-creator's token-cost table), and the handoff command.
+Open the bundle folder (`Start-Process explorer.exe "<BASE>\<APP>"`). Final Russian summary: bundle path, mode, screen/feature/entity counts, artifact list with line counts, evaluator verdict + coverage, and the handoff command. The per-agent usage table comes from `pipeline/agent-usage.jsonl` and reports model, reasoning effort, actual input/output/cached/reasoning tokens when the harness exposes them, fallback char-based estimates clearly marked `estimated`, duration, retries, cache hit, and correlation ID. Include workflow totals plus `tokens per accepted FR/US`; never present an estimate as provider-billed usage.
 
 **Feature mode:** no bundle folder to open — summarise the epic instead: board path, epic slug, SPEC count + titles, grounding-fact count, residual `(assumption)` items, and the `/<prefix> --feature --next` command.
 

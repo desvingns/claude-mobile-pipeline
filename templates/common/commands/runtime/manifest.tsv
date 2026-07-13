@@ -1,0 +1,16 @@
+# mode<TAB>selector<TAB>runbook
+feature	--feature	feature.md
+bugfix	--bugfix	bugfix.md
+discuss	--discuss	discuss.md
+spec	--spec	spec.md
+coverage	--coverage	coverage.md
+upgrade	--upgrade	upgrade.md
+device	--device	device.md
+fit	--fit	fit.md
+plan	--plan	plan.md
+phase	--phase	phase.md
+check	--check	check.md
+continue	--continue	continue.md
+improve	--improve	improve.md
+reflect	--reflect	reflect.md
+deliver	--deliver	deliver.md

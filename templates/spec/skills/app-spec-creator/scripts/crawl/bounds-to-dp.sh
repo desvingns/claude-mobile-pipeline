@@ -45,7 +45,7 @@ for f in "$elements_dir"/ST*.json; do
       }
       print line
     }
-  ' "$f" > "$tmp" && mv "$tmp" "$f" || { rm -f "$tmp"; emit "{\"ok\":false,\"error\":\"failed to rewrite $f\"}"; }
+  ' "$f" > "$tmp" && mv "$tmp" "$f" || emit "{\"ok\":false,\"error\":\"failed to rewrite $f; partial evidence retained at $tmp\"}"
   files=$((files + 1))
 done
 

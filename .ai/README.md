@@ -20,7 +20,8 @@ is immediately visible to the other on its next run.
 ## Protocol (both tools follow this)
 
 1. **Session start** — read, in order: root `AGENTS.md` (the rules) → `.ai/handoff.md`
-   (where we are) → `.ai/memory/MEMORY.md` (durable knowledge) → any open `.ai/tasks/*.md`.
+   (where we are) → `.ai/memory/MEMORY.md` (durable knowledge) → `.ai/tasks/INDEX.md` →
+   only files listed under `ACTIVE`. Do not bulk-load historical task briefs.
 2. **During work** — keep the active task file's `STATUS` current; record every edit to an
    agent / skill / template as a new entry in `.ai/changes/agent-skill-log.md`.
 3. **Hand-off / session end** — rewrite `.ai/handoff.md` (DONE / DECISIONS / NEXT / OWNER /

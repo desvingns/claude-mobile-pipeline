@@ -1,0 +1,7 @@
+## 2026-01-02T00:00-change-demo
+type: fix
+target: templates/demo.txt
+summary: change the deterministic proposal fixture
+reason: exercise proposal application and archival
+affects: claude, codex
+by: codex

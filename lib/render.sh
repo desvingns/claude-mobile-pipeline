@@ -66,6 +66,27 @@ strip_platform_markers() {
         "$file" > "$tmp" && mv "$tmp" "$file"
 }
 
+# strip_tool_block <file> <tool>
+# Deletes `<!-- tool:X --> ... <!-- /tool:X -->` blocks for an unselected harness.
+# The same one-inline-block-per-line limitation as platform blocks applies.
+strip_tool_block() {
+    local file="$1" tool="$2"
+    local tmp="${file}.tmp.$$"
+    sed -e "s|<!-- tool:${tool} -->.*<!-- /tool:${tool} -->||g" \
+        -e "/<!-- tool:${tool} -->/,/<!-- \/tool:${tool} -->/d" \
+        "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
+# strip_tool_markers <file> <tool>
+# Keeps the selected harness content and removes only its marker text.
+strip_tool_markers() {
+    local file="$1" tool="$2"
+    local tmp="${file}.tmp.$$"
+    sed -e "s|<!-- tool:${tool} -->||g" \
+        -e "s|<!-- /tool:${tool} -->||g" \
+        "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
 # strip_if_block <file> <condition>
 # Removes `<!-- if CONDITION -->...<!-- /if -->` blocks. Condition is a literal
 # string match (e.g. "UI_LANGUAGE != en").

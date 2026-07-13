@@ -13,10 +13,14 @@ fixes through a human gate into the existing change-log → sync rail.
 
 ## The loop
 1. **Capture (L1):** `./record-run.sh --agent <name> --verdict pass|fail|partial [--model M]
-   [--metric "tests=42/0;cov=67%"] [--retry N] [--note "..."]` appends one JSON line. Wire it
-   into the runner / reviewer / CI so events accrue automatically.
-2. **Reflect (L2):** `./reflect.sh` aggregates the JSONL → `retro/retro-<date>.md` (per-agent
-   pass-rate, failure clusters, flaky signals). Deterministic, no LLM.
+   [--tokens-in N] [--tokens-out N] [--tokens-cached N] [--tokens-reasoning N]
+   [--cost-usd N.N] [--duration-ms N] [--usage-source provider|estimated]
+   [--correlation-id ID]` appends one JSON line. Unmarked legacy token/cost values are labeled
+   `estimated`; use `provider` only for counters exposed by the model/runtime. Every usage field
+   remains optional, so older event producers stay valid.
+2. **Reflect (L2):** `./retro.sh` aggregates the JSONL → `retro/retro-<date>.md` (per-agent
+   pass-rate, feedback, structured token/cost/duration totals). `./retro.sh --health` is the
+   cheap dormant-telemetry check. `reflect.sh` remains the legacy entrypoint.
 3. **Propose (L3):** run `REFLECTION-PROMPT.md` in Claude/Codex — or the `selfimprove-retro`
    agent — to turn the retro into concrete, minimal change proposals.
 4. **Gate:** a human approves. Approved changes get one entry in `.ai/changes/agent-skill-log.md`.
@@ -24,7 +28,7 @@ fixes through a human gate into the existing change-log → sync rail.
    dual-tool design already uses. Never hand-maintain two copies.
 
 ```
-record-run.sh ──▶ runs/*.jsonl ──▶ reflect.sh ──▶ retro/*.md ──▶ REFLECTION-PROMPT
+record-run.sh ──▶ runs/*.jsonl ──▶ retro.sh ──▶ retro/*.md ──▶ REFLECTION-PROMPT
       (L1)            (raw)            (L2)         (digest)            (L3)
                                                                          │ human gate
                                                                          ▼

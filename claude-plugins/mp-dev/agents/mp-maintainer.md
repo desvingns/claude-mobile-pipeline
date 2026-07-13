@@ -36,7 +36,7 @@ Native Codex shims for this dev pipeline must mirror the same intent with explic
 | `fast-run` | `gpt-5.4-mini` / `low` | `*-runner-*`, `*-coverage-*` |
 | `fast-check` | `gpt-5.4-mini` / `medium` | `*-reviewer-*`, `*-verifier-*` |
 | `standard` | `gpt-5.4` / `high` | `*-tester-*`, `*-architect`, `*-docs`, `*-ui-designer-*`, `*-maintainer` |
-| `powerful` | `gpt-5.5` / `high` | `*-developer-*`, `*-fit-*` |
+| `powerful` | `gpt-5.6` / `high` | `*-developer-*`, `*-fit-*` |
 
 ---
 

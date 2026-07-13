@@ -9,35 +9,92 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    name: validate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Manifests are valid JSON
         run: |
           set -e
           files=".claude-plugin/marketplace.json .agents/plugins/marketplace.json $(find claude-plugins codex-plugins -name plugin.json)"
-          for f in $files; do echo "checking $f"; python3 -c "import json,sys; json.load(open('$f'))"; done
+          for f in $files; do echo "checking $f"; python -c "import json; json.load(open('$f', encoding='utf-8'))"; done
+
+      - name: Manifest versions match root VERSION
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected = Path('VERSION').read_text(encoding='utf-8').strip()
+          files = [
+              Path('claude-plugins/mp-dev/.claude-plugin/plugin.json'),
+              Path('claude-plugins/mp-spec/.claude-plugin/plugin.json'),
+              Path('codex-plugins/mp-dev/.codex-plugin/plugin.json'),
+              Path('codex-plugins/mp-spec/.codex-plugin/plugin.json'),
+              Path('templates/dev/codex/.codex-plugin/plugin.json'),
+          ]
+          failures = []
+          for path in files:
+              actual = json.loads(path.read_text(encoding='utf-8')).get('version')
+              if actual != expected:
+                  failures.append(f'{path}: {actual!r} != {expected!r}')
+          marketplace = json.loads(Path('.claude-plugin/marketplace.json').read_text(encoding='utf-8'))
+          actual = marketplace.get('metadata', {}).get('version')
+          if actual != expected:
+              failures.append(f'.claude-plugin/marketplace.json metadata.version: {actual!r} != {expected!r}')
+          if failures:
+              raise SystemExit('manifest version drift:\n' + '\n'.join(failures))
+          PY
 
       - name: Shell scripts parse (bash -n)
         run: |
           set -e
-          for d in lib claude-plugins templates selfimprove eval; do
+          for d in lib claude-plugins codex-plugins templates selfimprove eval scripts tests; do
             [ -d "$d" ] || continue
             find "$d" -name '*.sh' -print0 | while IFS= read -r -d '' s; do echo "bash -n $s"; bash -n "$s"; done
           done
           for s in bootstrap.sh install-spec.sh; do [ -f "$s" ] && { echo "bash -n $s"; bash -n "$s"; }; done
 
       - name: shellcheck (error severity)
+        if: runner.os == 'Linux'
         run: |
           set -e
           command -v shellcheck >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck; }
           # -S error: retrofit gate — block on real errors, not legacy style warnings
-          for d in lib claude-plugins templates selfimprove eval; do
+          for d in lib claude-plugins codex-plugins templates selfimprove eval scripts tests; do
             [ -d "$d" ] || continue
             find "$d" -name '*.sh' -print0 | while IFS= read -r -d '' s; do echo "shellcheck $s"; shellcheck -S error "$s"; done
           done
           for s in bootstrap.sh install-spec.sh; do [ -f "$s" ] && { echo "shellcheck $s"; shellcheck -S error "$s"; }; done
+
+      - name: Deterministic infrastructure and eval tests
+        run: |
+          set -e
+          bash tests/test-sync.sh
+          bash tests/test-render-properties.sh
+          bash tests/test-selfimprove.sh
+          bash tests/test-proposals.sh
+          bash tests/test-eval.sh
+          bash tests/test-optimization-scripts.sh
+          bash tests/test-brain-memory.sh
+          bash tests/test-install-spec.sh
+          bash tests/test-graphify-wrapper.sh
+          bash tests/test-bootstrap.sh
+          bash eval/runner.sh
+
+      - name: Marketplace generator parses on every host
+        run: bash lib/build-marketplace.sh --dry-run >/dev/null
 
       - name: No template-placeholder or marker leaks
         run: |
@@ -51,12 +108,26 @@ jobs:
             echo "::error::tool: marker leaked into mp-spec"; exit 1; fi
 
       - name: Generated trees match templates (regeneration drift)
+        if: runner.os == 'Linux'
         run: |
           set -e
+          tracked=(
+            claude-plugins
+            codex-plugins
+            .claude-plugin/marketplace.json
+            templates/dev/codex/.codex-plugin/plugin.json
+          )
           bash lib/build-marketplace.sh >/dev/null
-          if ! git diff --quiet --ignore-cr-at-eol -- claude-plugins codex-plugins; then
-            echo "::error::claude-plugins/ or codex-plugins/ is out of sync with templates/. Run ./lib/build-marketplace.sh and commit the result."
-            git --no-pager diff --stat -- claude-plugins codex-plugins
+          git diff --binary -- "${tracked[@]}" > "$RUNNER_TEMP/regen-first.diff"
+          bash lib/build-marketplace.sh >/dev/null
+          git diff --binary -- "${tracked[@]}" > "$RUNNER_TEMP/regen-second.diff"
+          if ! cmp -s "$RUNNER_TEMP/regen-first.diff" "$RUNNER_TEMP/regen-second.diff"; then
+            echo "::error::lib/build-marketplace.sh is not idempotent (the second run changed its output again)."
             exit 1
           fi
-          echo "plugin trees are in sync with templates/"
+          if ! git diff --quiet --ignore-cr-at-eol -- "${tracked[@]}"; then
+            echo "::error::generated marketplace artifacts are out of sync. Run ./lib/build-marketplace.sh and commit every tracked artifact."
+            git --no-pager diff --stat -- "${tracked[@]}"
+            exit 1
+          fi
+          echo "marketplace artifacts are in sync and regeneration is idempotent"

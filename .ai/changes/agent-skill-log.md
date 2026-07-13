@@ -390,3 +390,99 @@ summary: BRAIN-LEVEL routing class + brain_candidates[] in knowledge; optional t
 reason: a second-brain repo (github.com/desvingns/brain) now carries cross-project knowledge; lessons that generalize beyond mobile-pipeline projects route to $BRAIN/inbox (human-gated promotion via /brain promote), and improve/reflect proposals declare applicability to the twin me-dev pipeline so /brain sync-twins can stage ports on the other side
 affects: claude, codex
 by: claude
+
+## 2026-07-10T16:00-gpt-5-6-model-tier
+type: update
+target: install-spec.sh, templates/spec/skills/app-spec-creator/SKILL.md, templates/dev/codex/skills/mp-dev/references/codex-agent-shims.md, templates/common/agents/{{PREFIX}}-maintainer.md
+summary: promote all frontier MP Spec and MP Dev Codex subagent tiers from gpt-5.5 to gpt-5.6, preserving existing reasoning effort and sandbox assignments.
+reason: GPT-5.6 is available in preview and the user requested the new model for the pipeline and MyMoney.
+affects: claude, codex
+by: codex
+
+## 2026-07-10T16:10-mymoney-mp-spec-cache-path
+type: fix
+target: D:/Pet/MyMoney/.codex/agents/*.toml
+summary: repoint MyMoney's MP Spec native subagents from the missing mobile-pipeline mp-spec 1.8.1 cache to the installed personal mp-spec 1.10.0 cache.
+reason: the old cache directory no longer exists, so the subagents could not load their mandatory MP Spec skill body.
+affects: codex
+by: codex
+
+## 2026-07-13T20:00-lazy-mp-runtime
+type: update
+target: templates/common/commands/{{PREFIX}}.md, templates/common/commands/runtime/*, lib/build-marketplace.sh, bootstrap.sh
+summary: replace the 83k-character /mp monolith with a 3.5k compact router, 15 lazy mode runbooks, 14 shared contracts, validated heading/flag coverage, and self-contained Claude/Codex runtime packaging.
+reason: fixed prompt context was paid on every mode even though most workflows use a small disjoint subset; lazy contracts reduce fixed context about 95 percent while retaining every gate and payload rule.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T20:10-risk-model-quality-routing
+type: add
+target: templates/common/scripts/{{PREFIX}}-risk-route.sh, templates/android/agents/{{PREFIX}}-{developer-standard,semantic-reviewer,verifier-lite}-android.md, templates/common/commands/runtime/contract-risk-routing.md, templates/dev/codex/skills/mp-dev/references/codex-agent-shims.md
+summary: deterministic task-risk scoring now selects a standard or powerful Developer, focused semantic review, a full or lite Verifier, and a fresh independent critic for high-risk changes; invalid routing falls back to the strongest path.
+reason: routine local changes can use cheaper execution without weakening the canonical contract, while migrations, security, payments, wiring, concurrency, broad diffs, and visual evidence benefit from additional independent judgment.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T20:20-mp-spec-cache-evidence-budget
+type: update
+target: templates/spec/skills/app-spec-creator/SKILL.md, templates/spec/skills/app-spec-creator/scripts/{spec-cache,spec-preflight,spec-usage}.sh
+summary: add lean/balanced/max spend semantics, content-addressed phase cache, compact ID-based evidence packets, conditional quality fan-out with explicit skipped artifacts, deterministic evaluator preflight, targeted failed-rubric retries, and normalized agent usage telemetry.
+reason: MP Spec repeatedly paid for unchanged inputs and sent oversized cross-phase context to every specialist; mechanical failures should be fixed before frontier evaluation and expensive calls should remain proportional to evidence/risk.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T20:30-inbox-only-brain-memory
+type: update
+target: templates/common/agents/{{PREFIX}}-knowledge.md, templates/common/scripts/{{PREFIX}}-brain-memory.sh, templates/common/commands/runtime/{fit,contract-post-ship}.md
+summary: make second-brain curated layers read-only, route user/general lessons through fingerprinted inbox candidates, and retrieve only tag-selected context under a hard token budget; fit and post-ship taste capture use the same gateway.
+reason: direct profile writes bypassed the human promotion gate and broad brain reads duplicated context; one asymmetric gateway improves provenance, deduplication, safety, and token economy across projects.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T20:40-learning-sync-eval-ci
+type: add
+target: lib/sync.sh, templates/common/scripts/{{PREFIX}}-{record-run,retro,improve-drain}.sh, selfimprove/*, eval/*, tests/*, .github/workflows/{validate-plugins,regen-plugins}.yml
+summary: implement incremental adapter cursors, provider-vs-estimated usage telemetry with cache/reasoning/cost/duration/correlation fields, telemetry health, proposal lifecycle receipts, deterministic eval cases, property/fuzz tests, and Linux/macOS/Windows CI.
+reason: the learning loop could not distinguish missing telemetry from cheap runs, proposal queues had no terminal state, and adapter/CI drift lacked deterministic cross-platform gates.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T20:50-render-session-graphify-boundaries
+type: fix
+target: lib/render.sh, AGENTS.md, .ai/README.md, .ai/tasks/INDEX.md, .graphifyignore, scripts/graphify-update-canonical.sh
+summary: implement inline/multiline tool conditional rendering, load only active task files at session start, exclude generated plugin/history duplicates from Graphify, and preserve the previous graph before a canonical forced rebuild.
+reason: the documented dual-tool marker contract was not executable, historical task/plugin duplication inflated every session/query, and Graphify's shrink guard prevented intentional corpus cleanup without an auditable archive.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T21:00-release-safety-hardening
+type: fix
+target: install-spec.sh, lib/sync.sh, scripts/graphify-update-canonical.sh, templates/common/scripts/{{PREFIX}}-{brain-memory,record-run,improve-drain}.sh, templates/spec/skills/app-spec-creator/scripts/spec-usage.sh, templates/common/commands/runtime/contract-startup.md, .gitattributes, tests/*
+summary: archive all replaced installer/adapter state, abort proposal lifecycle transitions on regeneration failure, restore a known-good graph after partial failures, enforce strict JSON decimals and finite option parsing, route startup through the bounded brain gateway, and lock cross-platform LF semantics.
+reason: final independent review found destructive force-install behavior, an unowned AGENTS.md overwrite, CRLF-sensitive runtime parsing, partial-failure state loss, malformed numeric JSON, an option-loop hang, and memory/heartbeat portability gaps that deterministic negative tests now cover.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T21:05-retained-temporary-evidence
+type: fix
+target: templates/common/scripts/{{PREFIX}}-{cross-reflect,pixel-diff}.sh, templates/spec/skills/app-spec-creator/scripts/crawl/bounds-to-dp.sh
+summary: replace temporary-file deletion with collision-safe retained evidence under local cache/archive paths and expose the retained path in structured output where useful.
+reason: the personal never-delete policy applies to deterministic helpers too; preserving bounded intermediate evidence also makes failed comparisons, reflection aggregation, and conversion errors diagnosable.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T21:10-bootstrap-no-git-contract
+type: fix
+target: bootstrap.sh, tests/test-bootstrap.sh, .github/workflows/validate-plugins.yml
+summary: implement the documented --no-git switch so throwaway/non-git generation can suppress only the repository warning while retaining every other validation and preflight gate.
+reason: final bootstrap smoke exposed a docs/parser mismatch; a dedicated regression now keeps the public CLI contract executable on every CI host.
+affects: claude, codex
+by: codex
+
+## 2026-07-13T21:15-generic-personal-scope-policy
+type: fix
+target: templates/spec/skills/app-spec-creator/SKILL.md
+summary: express the personal-project isolation rule generically without embedding organization-specific names in the shared skill or generated plugins.
+reason: exclusion rules should block private work integrations by category while keeping the personal repository itself free of corporate content.
+affects: claude, codex
+by: codex

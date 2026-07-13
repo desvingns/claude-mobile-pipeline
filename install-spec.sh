@@ -8,7 +8,7 @@
 # plugin per project (one shared, updatable copy). This global installer is still useful for Codex
 # sub-agents (`~/.codex/agents/*.toml` — which Codex plugins can't carry) and as a fallback; if you
 # enable the plugin AND keep this global install, remove the older global copy to avoid duplicate
-# skill/agent names (~/.claude/skills/app-spec-creator + ~/.claude/agents/<17 spec agents>).
+# skill/agent names (~/.claude/skills/app-spec-creator + ~/.claude/agents/<22 spec agents>).
 #
 # Golden rules honoured: cross-platform Bash (Linux/macOS/Windows Git Bash); never `sed -i`
 # (render writes to a temp file then `mv`); markdown-first; structured payloads untouched.
@@ -25,6 +25,7 @@ HARNESS="both"
 HOME_DIR="${HOME}"
 DRY_RUN=0
 FORCE=0
+INSTALL_STAMP="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -49,7 +50,7 @@ grounding-scout|gpt-5.4-mini|medium|Read-only brownfield grounding scout; fan ou
 requirements-author|gpt-5.4|high|Author EARS functional requirements from analyzer outputs or interview answers; ground every FR.
 user-story-writer|gpt-5.4|high|Derive user stories (US-NNN) from requirements, linked to FR IDs, reporting coverage gaps.
 acceptance-criteria-writer|gpt-5.4|high|Write UI-agnostic Gherkin acceptance criteria per epic, covering the state matrix.
-spec-evaluator|gpt-5.5|xhigh|Evaluator-optimizer critic; cross-check the bundle, build traceability.csv, return a verdict. Read-only on artifacts.
+spec-evaluator|gpt-5.6|xhigh|Evaluator-optimizer critic; cross-check the bundle, build traceability.csv, return a verdict. Read-only on artifacts.
 nfr-analyzer|gpt-5.4|medium|Derive measurable non-functional requirements with numeric thresholds.
 a11y-reviewer|gpt-5.4|medium|Produce the accessibility spec (WCAG 2.2 AA) plus a per-screen checklist.
 security-privacy-reviewer|gpt-5.4|medium|Data classification, consent, and per-permission justification.
@@ -57,17 +58,72 @@ analytics-taxonomy-designer|gpt-5.4|medium|Design the analytics event taxonomy k
 risk-estimator|gpt-5.4|medium|Risk register plus effort estimate from inventory, NFRs, and integrations.
 apk-analyzer|gpt-5.4|medium|Extract ground-truth from an APK (palette, strings, manifest, libraries).
 play-store-scraper|gpt-5.4-mini|low|Scrape a Google Play listing for app metadata (needs the Chrome MCP).
-screenshot-business-analyzer|gpt-5.5|high|Multimodal screenshot analysis into screens, business rules, states, and hints.
-screenshot-style-analyzer|gpt-5.5|high|Multimodal screenshot analysis into design tokens and contrast pairs.
+screenshot-business-analyzer|gpt-5.6|high|Multimodal screenshot analysis into screens, business rules, states, and hints.
+screenshot-style-analyzer|gpt-5.6|high|Multimodal screenshot analysis into design tokens and contrast pairs.
 navigation-flow-analyzer|gpt-5.4|medium|Build the navigation graph from the business analysis.
 data-model-extractor|gpt-5.4|high|Derive neutral data entities, relations, and a cache strategy.
 backend-api-extractor|gpt-5.4|high|Infer REST API contracts and third-party SDKs from UI evidence.
-fit-checklist-author|gpt-5.5|high|Per-screen visual+behavioural fit checklist + screen<->reference registry + intended-deviation ledger (clone, depth reference).
-crawl-executor|gpt-5.5|high|Driver of the reference-APK crawl trio; goal-scoped vision-first device driver — replay to a target state, perform one affordance, capture and dedup (clone, --graph).
+fit-checklist-author|gpt-5.6|high|Per-screen visual+behavioural fit checklist + screen<->reference registry + intended-deviation ledger (clone, depth reference).
+crawl-executor|gpt-5.6|high|Driver of the reference-APK crawl trio; goal-scoped vision-first device driver — replay to a target state, perform one affordance, capture and dedup (clone, --graph).
 crawl-navigator|gpt-5.4|medium|Planner of the reference-APK crawl trio; read the observed state graph and pick the next affordance to explore plus its replay path (clone, --graph).
-crawl-reviewer|gpt-5.5|high|Critic of the reference-APK crawl trio; multimodal — classify each explored edge, score coverage confidence, gate accept vs retry (clone, --graph).'
+crawl-reviewer|gpt-5.6|high|Critic of the reference-APK crawl trio; multimodal — classify each explored edge, score coverage confidence, gate accept vs retry (clone, --graph).'
 
 say() { echo "$@"; }
+
+path_exists() { [ -e "$1" ] || [ -L "$1" ]; }
+
+# prepare_install <harness-root> <skill-dir> <agents-dir> <claude|codex>
+#
+# A global install may contain user edits or locally maintained agents. Never
+# replace those paths in place: without --force, refuse; with --force, move the
+# complete prior skill plus every agent path owned by this installer into one
+# timestamped archive under the harness root.
+prepare_install() {
+  local harness_root="$1" sk="$2" ag="$3" tool="$4"
+  local archive="$harness_root/archive/app-spec-creator/$INSTALL_STAMP"
+  local extensions name ext path conflict=0 archived=0
+  if [ "$tool" = claude ]; then extensions="md"; else extensions="md toml"; fi
+
+  path_exists "$sk" && conflict=1
+  while IFS='|' read -r name _ _ _; do
+    [ -n "$name" ] || continue
+    for ext in $extensions; do
+      path="$ag/$name.$ext"
+      path_exists "$path" && conflict=1
+    done
+  done <<EOF
+$AGENTS
+EOF
+
+  [ "$conflict" -eq 1 ] || return 0
+  if [ "$DRY_RUN" = 1 ]; then
+    say "  [dry] archive prior $tool install -> $archive"
+    return 0
+  fi
+  [ "$FORCE" = 1 ] || {
+    echo "refusing to overwrite an existing $tool spec skill/agent path (use --force to archive it first)" >&2
+    exit 1
+  }
+
+  if path_exists "$sk"; then
+    mkdir -p "$archive/skills"
+    mv "$sk" "$archive/skills/app-spec-creator"
+    archived=1
+  fi
+  while IFS='|' read -r name _ _ _; do
+    [ -n "$name" ] || continue
+    for ext in $extensions; do
+      path="$ag/$name.$ext"
+      path_exists "$path" || continue
+      mkdir -p "$archive/agents"
+      mv "$path" "$archive/agents/$(basename "$path")"
+      archived=1
+    done
+  done <<EOF
+$AGENTS
+EOF
+  [ "$archived" -eq 0 ] || say "    archived prior $tool install -> $archive"
+}
 
 # render a markdown file: substitute {{AGENT_DIR}}; drop the OTHER tool's conditional blocks; strip
 # all remaining tool-marker lines. $agentdir is a portable literal ("~/.claude" / "~/.codex").
@@ -84,22 +140,15 @@ render_md() {
   mv "$tmp" "$dst"
 }
 
-guard_existing() {
-  local dir="$1"
-  if [ -d "$dir" ] && [ "$FORCE" != 1 ] && [ "$DRY_RUN" != 1 ]; then
-    echo "refusing to overwrite existing $dir (use --force)" >&2; exit 1
-  fi
-}
-
 install_claude() {
   local home="$1" sk ag adir="~/.claude" name
   sk="$home/.claude/skills/app-spec-creator"; ag="$home/.claude/agents"
   say "==> Claude form -> $home/.claude"
-  guard_existing "$sk"
+  prepare_install "$home/.claude" "$sk" "$ag" claude
   if [ "$DRY_RUN" != 1 ]; then
     mkdir -p "$sk" "$ag"
-    rm -rf "$sk/prompts"; cp -r "$SPEC_SRC/skills/app-spec-creator/prompts" "$sk/prompts"
-    rm -rf "$sk/scripts"; [ -d "$SPEC_SRC/skills/app-spec-creator/scripts" ] && cp -r "$SPEC_SRC/skills/app-spec-creator/scripts" "$sk/scripts"
+    cp -r "$SPEC_SRC/skills/app-spec-creator/prompts" "$sk/prompts"
+    [ ! -d "$SPEC_SRC/skills/app-spec-creator/scripts" ] || cp -r "$SPEC_SRC/skills/app-spec-creator/scripts" "$sk/scripts"
   fi
   render_md "$SPEC_SRC/skills/app-spec-creator/SKILL.md" "$sk/SKILL.md" "$adir" claude
   while IFS='|' read -r name _ _ _; do
@@ -115,11 +164,11 @@ install_codex() {
   sk="$home/.codex/skills/app-spec-creator"; ag="$home/.codex/agents"
   tmpl="$SPEC_SRC/codex/agent.toml.tmpl"
   say "==> Codex form -> $home/.codex"
-  guard_existing "$sk"
+  prepare_install "$home/.codex" "$sk" "$ag" codex
   if [ "$DRY_RUN" != 1 ]; then
     mkdir -p "$sk/agents" "$ag"
-    rm -rf "$sk/prompts"; cp -r "$SPEC_SRC/skills/app-spec-creator/prompts" "$sk/prompts"
-    rm -rf "$sk/scripts"; [ -d "$SPEC_SRC/skills/app-spec-creator/scripts" ] && cp -r "$SPEC_SRC/skills/app-spec-creator/scripts" "$sk/scripts"
+    cp -r "$SPEC_SRC/skills/app-spec-creator/prompts" "$sk/prompts"
+    [ ! -d "$SPEC_SRC/skills/app-spec-creator/scripts" ] || cp -r "$SPEC_SRC/skills/app-spec-creator/scripts" "$sk/scripts"
     cp "$SPEC_SRC/codex/skills/app-spec-creator/agents/openai.yaml" "$sk/agents/openai.yaml"
   fi
   render_md "$SPEC_SRC/skills/app-spec-creator/SKILL.md" "$sk/SKILL.md" "$adir" codex

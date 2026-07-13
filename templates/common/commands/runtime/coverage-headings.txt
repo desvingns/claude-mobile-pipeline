@@ -1,0 +1,75 @@
+# <Topic from BRAINSTORM, restated>
+# Reuse whatever remote is configured for `origin` instead of hard-coding the URL.
+# Token is provided via the GITHUB_TOKEN env var (configured in ~/.claude/settings.json,
+# so it is available to every Bash invocation on all platforms).
+## Approved SPEC
+## Brainstorm output
+## Deterministic steps via .claude/scripts/
+## Implementation links
+## Platform resolution
+## Post-ship (after a ship): deliver → feedback → knowledge → nudges
+## Rules
+## Run telemetry (fire-and-forget)
+## SPEC backlog board
+## Startup
+## Strict output contracts for LLM agents
+## Visual autotest device pre-flight (Android)
+## Workflow: --bugfix
+## Workflow: --check  (read-only validator)
+## Workflow: --continue  (state machine — propose the next conveyor step)
+## Workflow: --coverage  (Android only — diagnostic, read-only)
+## Workflow: --deliver  (send a build to yourself over Telegram)
+## Workflow: --device  (Android only — one on-device instrumented-test slice)
+## Workflow: --discuss
+## Workflow: --feature
+## Workflow: --fit  (Android clone projects — reference-comparison gate)
+## Workflow: --improve  (improve the pipeline itself)
+## Workflow: --phase  (assisted progression — one task per run)
+## Workflow: --plan  (spec → backlog bridge)
+## Workflow: --plan --phases  (design → numbered phase plan; clone/large builds)
+## Workflow: --reflect  (cross-project, maintainer)
+## Workflow: --spec
+## Workflow: --upgrade
+### Epic completion (final review + close)
+### Mode A — Direct (your note → its OWN PR)
+### Mode B — Drain (batch the queue → ONE PR)
+### Phase 0 — Brainstorm trigger (optional)
+### Phase 1 — Brainstorm
+### Phase 1 — Draft
+### Phase 1 — Ensure a device is connected (mandatory) + pick the target
+### Phase 1 — Inspect state (read-only, in this order)
+### Phase 1 — Invoke maintainer
+### Phase 1 — Load context
+### Phase 1 — Locate
+### Phase 1 — Plan
+### Phase 1 — Resolve + send
+### Phase 1 — Resolve references + ensure a device
+### Phase 1 — Run
+### Phase 1 — Spec (grill-first elicitation)
+### Phase 2 — Add a seam only if one is needed
+### Phase 2 — Capture the built screens
+### Phase 2 — Coverage audit + preview + gate
+### Phase 2 — Fix
+### Phase 2 — Gated write
+### Phase 2 — Implement
+### Phase 2 — Optional persistence
+### Phase 2 — Pick ONE recommendation (first match wins)
+### Phase 2 — Report
+### Phase 2 — Synthesise SPEC (no questions — the phase file IS the spec)
+### Phase 2 — Write to backlog (no approval gate)
+### Phase 2.5 — Objective pixel pass (deterministic, before the agent)
+### Phase 3 — Compare
+### Phase 3 — Gated write (orchestrator only — the ONLY writes here)
+### Phase 3 — Propose + gated run
+### Phase 3 — Report
+### Phase 3 — Run pipeline
+### Phase 3 — Write ONE test
+### Phase 4 — Record progress
+### Phase 4 — Report
+### Phase 4 — Report + gated write
+### Phase 4 — Run it on the device
+### Phase 5 — Record or recover
+### Phase 5 — Report
+### Phase 6 — Report and stop
+### Report
+#### TDD mode (--tdd flag, optional)

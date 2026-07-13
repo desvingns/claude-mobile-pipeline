@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "minimum_pass_rate": 1.0,
+  "case_ids": [
+    "legacy-telemetry-backcompat",
+    "structured-usage-and-feedback",
+    "low-feedback-candidate-schema"
+  ]
+}

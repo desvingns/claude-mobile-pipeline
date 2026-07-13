@@ -45,17 +45,27 @@ ref_dims="$(dims "$reference")"; built_dims="$(dims "$built")"
 # dims (forced) into a temp file — the originals are never modified.
 cmp_built="$built"; resized=false; tmp=""
 if [ "$ref_dims" != "$built_dims" ]; then
-  tmp="$(mktemp --suffix=.png 2>/dev/null || mktemp).png"
-  if [ -n "$MAGICK" ]; then $MAGICK "$built" -resize "${ref_dims}!" "$tmp" 2>/dev/null || tmp=""
-  else convert "$built" -resize "${ref_dims}!" "$tmp" 2>/dev/null || tmp=""; fi
-  [ -n "$tmp" ] && [ -f "$tmp" ] || emit '{"ok":false,"error":"resize failed (dimension mismatch and no usable convert)"}'
+  evidence_root="${MP_PIXEL_DIFF_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mobile-pipeline/pixel-diff}"
+  mkdir -p "$evidence_root" 2>/dev/null || emit '{"ok":false,"error":"cannot create pixel-diff evidence archive"}'
+  tmp="$evidence_root/$(date -u +%Y%m%dT%H%M%SZ)-$$-resized.png"; suffix=0
+  while [ -e "$tmp" ]; do
+    suffix=$((suffix + 1))
+    tmp="$evidence_root/$(date -u +%Y%m%dT%H%M%SZ)-$$-$suffix-resized.png"
+  done
+  if [ -n "$MAGICK" ]; then
+    $MAGICK "$built" -resize "${ref_dims}!" "$tmp" 2>/dev/null \
+      || emit "{\"ok\":false,\"error\":\"resize failed; partial evidence retained at $(esc "$tmp")\"}"
+  else
+    convert "$built" -resize "${ref_dims}!" "$tmp" 2>/dev/null \
+      || emit "{\"ok\":false,\"error\":\"resize failed; partial evidence retained at $(esc "$tmp")\"}"
+  fi
+  [ -f "$tmp" ] || emit '{"ok":false,"error":"resize produced no evidence file"}'
   cmp_built="$tmp"; resized=true
 fi
 
 mkdir -p "$(dirname "$out")" 2>/dev/null || true
 # RMSE metric: stderr like "12345.6 (0.18837)" — the parenthesised value is normalized 0..1.
 metric="$($COMPARE -metric RMSE "$reference" "$cmp_built" "$out" 2>&1 >/dev/null | tr -d '\n')"
-[ -n "$tmp" ] && rm -f "$tmp"
 
 frac="$(printf '%s' "$metric" | sed -n 's/.*(\([0-9.eE+-]*\)).*/\1/p')"
 case "$frac" in ''|*[!0-9.eE+-]*) emit "{\"ok\":false,\"error\":\"unparseable compare output: $(esc "$metric")\"}" ;; esac
@@ -64,4 +74,4 @@ read -r rmse_pct similarity <<EOF2
 $(awk -v f="$frac" 'BEGIN { p = f * 100; if (p < 0) p = 0; if (p > 100) p = 100; printf "%.1f %.1f", p, 100 - p }')
 EOF2
 
-emit "{\"ok\":true,\"similarity\":$similarity,\"rmse_pct\":$rmse_pct,\"heatmap\":\"$(esc "$out")\",\"reference_dims\":\"$ref_dims\",\"built_dims\":\"$built_dims\",\"resized\":$resized}"
+emit "{\"ok\":true,\"similarity\":$similarity,\"rmse_pct\":$rmse_pct,\"heatmap\":\"$(esc "$out")\",\"reference_dims\":\"$ref_dims\",\"built_dims\":\"$built_dims\",\"resized\":$resized,\"resized_evidence\":\"$(esc "$tmp")\"}"

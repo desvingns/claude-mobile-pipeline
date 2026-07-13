@@ -32,6 +32,7 @@ FORCE=0
 DRY_RUN=0
 SKIP_MEMORY=0
 NON_INTERACTIVE=0
+NO_GIT=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -47,6 +48,7 @@ while [ $# -gt 0 ]; do
         --dry-run)               DRY_RUN=1 ;;
         --skip-memory)           SKIP_MEMORY=1 ;;
         --non-interactive)       NON_INTERACTIVE=1 ;;
+        --no-git)                NO_GIT=1 ;;
         --help|-h)               cat "$TEMPLATES_ROOT/docs/USAGE.md"; exit 0 ;;
         *) echo "Unknown flag: $1 (use --help)" >&2; exit 1 ;;
     esac
@@ -86,7 +88,7 @@ case "$PREFIX" in
 esac
 
 # Warn if not in a git repo
-if ! is_git_repo .; then
+if [ "$NO_GIT" -ne 1 ] && ! is_git_repo .; then
     echo "Warning: current directory is not a git repo." >&2
     echo "  The pipeline can still bootstrap, but push step won't work without git init." >&2
 fi
@@ -99,6 +101,7 @@ TODAY=$(date +%Y-%m-%d)
 CMP_VERSION=$(tr -d '[:space:]' < "$TEMPLATES_ROOT/VERSION")
 PLATFORMS_LIST=$(printf '%s' "$PLATFORM" | tr ',' ' ')
 PRIMARY_PLATFORM=$(printf '%s' "$PLATFORMS_LIST" | awk '{print $1}')
+AGENT_DIR=".claude"
 
 case "$PRIMARY_PLATFORM" in
     android) PROJECT_SOURCE_ROOT="app/src/main/java/$PACKAGE_PATH" ;;
@@ -122,7 +125,8 @@ if [ "$DRY_RUN" -eq 1 ]; then
     echo "  .claude/agents/$PREFIX-ui-designer-android.md (android-only)"
     echo "  .claude/agents/$PREFIX-runner-instrumented-android.md (android-only, on-device /$PREFIX --device runner)"
     echo "  .claude/commands/$PREFIX.md"
-    echo "  .claude/scripts/$PREFIX-{runner-<plat>,reviewer-<plat>}.sh"
+    echo "  .claude/commands/$PREFIX-runtime/*.md   (lazy-loaded mode contracts)"
+    echo "  .claude/scripts/$PREFIX-*.sh            (common + platform helpers)"
     echo "  .claude/specs/README.md"
     echo "  .claude/specs/{backlog,active,done}/.gitkeep   (SPEC backlog board)"
     echo "  .claude/.cmp-version"
@@ -149,10 +153,11 @@ UI_LANGUAGE=$UI_LANG
 MEMORY_PATH=$MEMORY_PATH
 TODAY=$TODAY
 CMP_VERSION=$CMP_VERSION
+AGENT_DIR=$AGENT_DIR
 EOF
 
 # ----- copy_phase --------------------------------------------------------
-mkdir -p .claude/agents .claude/commands .claude/specs .claude/scripts
+mkdir -p .claude/agents ".claude/commands/$PREFIX-runtime" .claude/specs .claude/scripts
 
 # 1. Common agents (architect, docs — direct copy; reviewer-base handled per-platform)
 for src in "$TEMPLATES_ROOT"/templates/common/agents/*.md; do
@@ -179,6 +184,18 @@ done
 # 2. Common command
 cp "$TEMPLATES_ROOT/templates/common/commands/{{PREFIX}}.md" \
    ".claude/commands/{{PREFIX}}.md"
+
+# 2b. Lazy-loaded command contracts. The compact router reads only the selected mode file.
+if [ -d "$TEMPLATES_ROOT/templates/common/commands/runtime" ]; then
+    for src in "$TEMPLATES_ROOT"/templates/common/commands/runtime/*.md; do
+        [ -f "$src" ] || continue
+        cp "$src" ".claude/commands/$PREFIX-runtime/$(basename "$src")"
+    done
+    if [ -f "$TEMPLATES_ROOT/templates/common/commands/runtime/manifest.tsv" ]; then
+        cp "$TEMPLATES_ROOT/templates/common/commands/runtime/manifest.tsv" \
+           ".claude/commands/$PREFIX-runtime/manifest.tsv"
+    fi
+fi
 
 # 3. Common specs/README + the SPEC backlog board folders (backlog/active/done)
 cp "$TEMPLATES_ROOT/templates/common/specs/README.md" \
@@ -209,6 +226,16 @@ for plat in $PLATFORMS_LIST; do
     done
 done
 
+# 4c. Common scripts (risk routing, telemetry, brain inbox, improvement lifecycle, delivery).
+if [ -d "$TEMPLATES_ROOT/templates/common/scripts" ]; then
+    for src in "$TEMPLATES_ROOT"/templates/common/scripts/*.sh; do
+        [ -f "$src" ] || continue
+        base=$(basename "$src")
+        cp "$src" ".claude/scripts/$base"
+        chmod +x ".claude/scripts/$base"
+    done
+fi
+
 # 5. Root templates (.tmpl → strip extension)
 for src in "$TEMPLATES_ROOT"/templates/common/root/*.md.tmpl; do
     base=$(basename "$src" .tmpl)
@@ -217,7 +244,7 @@ done
 
 # ----- render_phase: placeholders ---------------------------------------
 ROOT_FILES="./CLAUDE.md ./STATE.md ./ROADMAP.md ./DOCUMENTATION.md"
-for f in .claude/agents/*.md .claude/commands/*.md .claude/specs/*.md .claude/scripts/*.sh $ROOT_FILES; do
+for f in .claude/agents/*.md .claude/commands/*.md .claude/commands/*/*.md .claude/specs/*.md .claude/scripts/*.sh $ROOT_FILES; do
     [ -f "$f" ] || continue
     render_file "$f" "$VARS_FILE"
 done
@@ -237,6 +264,9 @@ strip_conditionals() {
             strip_platform_block "$f" "$plat"
         fi
     done
+    # bootstrap.sh currently emits the canonical Claude adapter.
+    strip_tool_block "$f" codex
+    strip_tool_markers "$f" claude
     # UI_LANGUAGE conditionals
     if [ "$UI_LANG" = "en" ]; then
         strip_if_block "$f" "UI_LANGUAGE != en"
@@ -247,14 +277,14 @@ strip_conditionals() {
     strip_if_markers "$f"
 }
 
-for f in .claude/agents/*.md .claude/commands/*.md $ROOT_FILES; do
+for f in .claude/agents/*.md .claude/commands/*.md .claude/commands/*/*.md $ROOT_FILES; do
     [ -f "$f" ] || continue
     strip_conditionals "$f"
 done
 
 # ----- rename files: {{PREFIX}} in basename -----------------------------
 # Must happen after content rendering so file contents already have PREFIX substituted.
-for f in .claude/agents/*.md .claude/commands/*.md .claude/scripts/*.sh; do
+for f in .claude/agents/*.md .claude/commands/*.md .claude/commands/*/*.md .claude/scripts/*.sh; do
     [ -f "$f" ] || continue
     base=$(basename "$f")
     if [[ "$base" == *'{{PREFIX}}'* ]]; then

@@ -1,0 +1,7 @@
+diff --git a/templates/demo.txt b/templates/demo.txt
+index df967b9..2c928b3 100644
+--- a/templates/demo.txt
++++ b/templates/demo.txt
+@@ -1 +1 @@
+-before
++after

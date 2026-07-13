@@ -6,6 +6,50 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-07-13
+
+### Added
+- **Lazy `/mp` runtime.** The former 83k-character command is now a compact router plus 15
+  mode runbooks and 14 shared contracts. The fixed prompt falls by ~95%; each invocation reads
+  only its selected workflow and declared contracts. Claude and Codex packages carry the same
+  validated runtime.
+- **Risk-based quality routing.** A deterministic helper selects standard/powerful Developer,
+  focused semantic review, full/lite Verifier, and an independent critic for high-risk work.
+  Safe fallback always chooses the stronger path.
+- **MP Spec cost controls.** Content-addressed phase cache, compact evidence packets, conditional
+  quality fan-out, deterministic preflight, failed-rubric-only retries, and normalized per-agent
+  usage telemetry (`lean|balanced|max`) preserve mandatory artifacts and human gates.
+- **Safe second-brain gateway.** Agents can read a token-bounded, tag-selected context and append
+  fingerprinted candidates only to `brain/inbox/`; curated profile/domain/pipeline/project files
+  remain read-only and promotion stays human-gated.
+- **Incremental sync, eval, and proposal lifecycle.** `lib/sync.sh`, deterministic eval cases,
+  applied/rejected proposal archives with receipts, telemetry-health detection, and correlation/
+  cache/reasoning/duration fields close the learning loop.
+- **Canonical Graphify update path.** Generated plugin copies and historical evidence are excluded
+  from retrieval; the previous graph is archived before a forced canonical rebuild.
+
+### Changed
+- Bootstrap now emits lazy runtime files and every common deterministic helper, and renders the
+  `{{AGENT_DIR}}` placeholder plus `tool:claude|codex` conditionals.
+- Marketplace generation preserves the previous generated tree in `archive/marketplace/` instead
+  of destructively clearing it; Codex mp-dev is self-contained with runtime references and scripts.
+- CI validates Linux, macOS, and Windows, runs property/fuzz and deterministic eval suites, checks
+  version parity, marker leaks, two-pass generator idempotence, and generated-tree drift.
+- Second-brain collection now emits a capped summary plus on-demand evidence appendix and suppresses
+  unchanged/no-signal heartbeat noise.
+- Session startup reads `.ai/tasks/INDEX.md` plus active task files instead of bulk-loading history.
+
+### Fixed
+- Added the renderer functions for inline/multiline `tool:` blocks that the documented dual-tool
+  contract already required.
+- Hardened malformed MP Spec usage arguments and telemetry decimal validation so deterministic
+  helpers always produce valid structured output instead of hanging or corrupting JSONL.
+- Made global spec reinstall, Codex adapter replacement, proposal draining, and failed Graphify
+  rebuilds preserve prior/user/partial evidence through explicit archives before replacement.
+- Made brain digest names collision-safe, heartbeat mtime checks GNU/BSD portable, startup memory
+  resolution gateway-only, and local exclusion policy configurable without shared sensitive terms.
+- Restored the documented bootstrap `--no-git` flag and covered its warning-suppression behavior.
+
 ## [1.11.0] - 2026-07-05
 
 ### Added
@@ -46,8 +90,8 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ### Fixed
 - Plugin author metadata: `claude-plugins/{mp-dev,mp-spec}` and `codex-plugins/mp-spec` still
-  showed `Konstantin Shavrin <k.shavrin@strikerz.inc>`; corrected to `Kirill Shavrin
-  <desvingns@gmail.com>` to match the marketplace owner and the other manifests.
+  showed a former corporate address; corrected to `Kirill Shavrin <desvingns@gmail.com>` to match
+  the marketplace owner and the other manifests.
 
 ## [1.9.1] - 2026-06-19
 

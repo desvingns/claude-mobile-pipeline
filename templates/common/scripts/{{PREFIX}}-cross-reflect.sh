@@ -14,9 +14,16 @@ emit() { printf '%s\n' "$1"; exit 0; }
 [ -f "$LIST" ] || emit "{\"ok\":false,\"error\":\"no projects list at $LIST (one project root per line)\"}"
 
 OUT="$MP/.ai/reflections"; mkdir -p "$OUT"
-STAMP=$(date -u +%Y%m%d-%H%M); DIGEST="$OUT/$STAMP-digest.md"
+cache_root="${MP_REFLECT_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mobile-pipeline/cross-reflect}"
+base_stamp="$(date -u +%Y%m%d-%H%M%S)-$$"; STAMP="$base_stamp"; suffix=0
+DIGEST="$OUT/$STAMP-digest.md"; run_dir="$cache_root/$STAMP"
+while [ -e "$DIGEST" ] || [ -e "$run_dir" ]; do
+  suffix=$((suffix + 1)); STAMP="$base_stamp-$suffix"
+  DIGEST="$OUT/$STAMP-digest.md"; run_dir="$cache_root/$STAMP"
+done
 NPROJ=$(grep -cvE '^[[:space:]]*(#|$)' "$LIST" 2>/dev/null || true)
-tmp="$(mktemp)"
+mkdir -p "$run_dir" || emit "{\"ok\":false,\"error\":\"cannot preserve reflection evidence at $run_dir\"}"
+tmp="$run_dir/raw.tsv"
 
 # collect: "<project>\t<lesson>" per bullet line from each project's self-improve sources
 while IFS= read -r proj; do
@@ -31,6 +38,7 @@ while IFS= read -r proj; do
   done
 done < "$LIST"
 
+set -C
 {
   echo "# Cross-project reflection digest — $STAMP"
   echo
@@ -39,7 +47,8 @@ done < "$LIST"
   echo "## Recurring themes (significant keyword seen in >=2 projects)"
   echo "Heuristic grouping — the {{PREFIX}}-reflect agent decides which are real plugin improvements."
   echo
-} > "$DIGEST"
+} > "$DIGEST" || emit "{\"ok\":false,\"error\":\"refusing to overwrite reflection digest at $DIGEST\"}"
+set +C
 
 # keyword -> distinct project count (+ example lines); flag >=2 projects
 awk -F'\t' '
@@ -60,5 +69,4 @@ awk -F'\t' '
 sed -E 's/\t/ — /; s/^/- /' "$tmp" | sort >> "$DIGEST"
 
 themes=$(grep -cE '^- \*\*' "$DIGEST" 2>/dev/null || true)
-rm -f "$tmp"
-emit "{\"ok\":true,\"digest\":\"${DIGEST#"$MP"/}\",\"projects\":$NPROJ,\"recurring_themes\":$themes}"
+emit "{\"ok\":true,\"digest\":\"${DIGEST#"$MP"/}\",\"evidence\":\"$tmp\",\"projects\":$NPROJ,\"recurring_themes\":$themes}"

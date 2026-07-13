@@ -49,7 +49,7 @@ once here, regenerate, every project picks it up:
 
 | Plugin | Command | What |
 |--------|---------|------|
-| `mp-spec` | `/mp-spec` | Spec-bundle creator (was `app-spec-creator`) + 17 analysis sub-agents |
+| `mp-spec` | `/mp-spec` | Spec-bundle creator (was `app-spec-creator`) + 22 analysis sub-agents |
 | `mp-dev`  | `/mp`     | Dev orchestrator + specialist agents (Android) — Clean Arch, TDD, review/test/verify |
 
 **Enable in a project** — add to its `.claude/settings.json`:
@@ -163,7 +163,10 @@ in Claude Code to start.
 
 - `docs/USAGE.md` — full `bootstrap.sh` flags, examples for each platform
 - `docs/ARCHITECTURE.md` — agent graph, how context flows between agents, why each layer exists
-- `docs/SPEC-PIPELINE.md` — spec tool: `install-spec.sh`, the `spec/` bundle, 17 agents, intake modes, dual-harness, handoff
+- `docs/OPTIMIZATION.md` — measured token savings, risk/model routing, cache/evidence strategy,
+  telemetry, and memory/second-brain boundaries
+- `docs/BRAIN-INTEGRATION.md` — inbox-only writes, bounded retrieval, provenance and promotion receipts
+- `docs/SPEC-PIPELINE.md` — spec tool: `install-spec.sh`, the `spec/` bundle, 22 agents, intake modes, dual-harness, handoff
 - `docs/CLONE-PLAYBOOK.md` — the clone loop (pipelines 1→2): reference → spec → phases → build → fit → fix
 - `docs/CUSTOMIZATION.md` — how to adapt templates for your stack (different DI / DB / test framework)
 - `docs/UPGRADE.md` — how to pull cmp improvements into an existing project (`--upgrade` flow)

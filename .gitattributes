@@ -1,0 +1,16 @@
+* text=auto
+
+# Bash and every text format parsed by Bash/Python must stay byte-stable on
+# Windows checkouts. In particular, a trailing CR breaks runtime manifest
+# filenames and anchored conditional/contract markers.
+*.sh    text eol=lf
+*.bash  text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.tmpl  text eol=lf
+*.tsv   text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.toml  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf

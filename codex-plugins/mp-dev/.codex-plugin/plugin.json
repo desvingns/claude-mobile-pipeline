@@ -1,6 +1,6 @@
 {
   "name": "mp-dev",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Codex skill bridge for the MP Dev mobile development pipeline. Reads shared Claude mp-dev command and agent bodies plus .claude/mp project overrides; native subagent shims stay per project.",
   "author": {
     "name": "Kirill Shavrin",

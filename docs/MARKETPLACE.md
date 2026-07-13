@@ -9,7 +9,7 @@ every project picks it up.
 
 | Plugin | Slash | Harness | Contents |
 |--------|-------|---------|----------|
-| `mp-spec` | `/mp-spec` | Claude (skill + agents), Codex (skill only) | Spec-bundle creator (renamed from `app-spec-creator`) + 17 analysis sub-agents |
+| `mp-spec` | `/mp-spec` | Claude (skill + agents), Codex (skill only) | Spec-bundle creator (renamed from `app-spec-creator`) + 22 analysis sub-agents |
 | `mp-dev`  | `/mp`     | Claude (command + agents + scripts), Codex (skill only) | Dev orchestrator + specialist agents (architect, developer, reviewer, tester, runner, verifier, docs, ...) + deterministic scripts |
 
 **Why Codex differs:** Claude plugins can carry sub-agents (`agents/`); Codex plugins carry only
@@ -25,7 +25,7 @@ mobile-pipeline/                          # this repo (rename optional — see b
 ├── .agents/plugins/marketplace.json      # Codex marketplace catalog
 ├── claude-plugins/
 │   ├── mp-spec/{.claude-plugin/plugin.json, skills/mp-spec/{SKILL.md,prompts/}, agents/*.md}
-│   └── mp-dev/{.claude-plugin/plugin.json, commands/mp.md, agents/mp-*.md, scripts/mp-*.sh}
+│   └── mp-dev/{.claude-plugin/plugin.json, commands/{mp.md,mp-runtime/}, agents/mp-*.md, scripts/mp-*.sh}
 ├── codex-plugins/
 │   ├── mp-spec/{.codex-plugin/plugin.json, skills/mp-spec/{SKILL.md,prompts/}}
 │   └── mp-dev/{.codex-plugin/plugin.json, skills/mp-dev/{SKILL.md,references/}}
@@ -64,11 +64,11 @@ codex plugin add mp-dev@mobile-pipeline
 ```
 Codex sub-agents (spec): `./install-spec.sh --harness codex` writes `~/.codex/agents/*.toml` +
 `[agents]` config (needs `max_threads >= 6`). Generated spec agents pin explicit Codex model tiers
-(`gpt-5.4-mini` for simple/mechanical roles, `gpt-5.4` for standard authoring/analysis, `gpt-5.5`
+(`gpt-5.4-mini` for simple/mechanical roles, `gpt-5.4` for standard authoring/analysis, `gpt-5.6`
 for screenshot/evaluator-critical roles) instead of inheriting the parent session.
 
 Codex sub-agents (dev): the `mp-dev` Codex plugin provides the `$mp`/`/mp` skill bridge plus
-`skills/mp-dev/references/codex-agent-shims.md`. Projects still install the 18 native
+`skills/mp-dev/references/codex-agent-shims.md`. Projects still install the 21 native
 `.codex/agents/mp-*.toml` wrappers locally, using `templates/dev/codex/agent.toml.tmpl` and
 `templates/dev/codex/config-fragment.toml`. The wrappers read the canonical Claude `mp-dev` agent
 bodies from the plugin cache and then `.claude/mp/extras/<agent>.md`, so Claude and Codex share the
@@ -137,7 +137,7 @@ they coexist harmlessly until you remove them.
   is folded into the plugin (see Follow-ups).
 
 **Old global spec install** (if you ever ran `install-spec.sh` for Claude): remove
-`~/.claude/skills/app-spec-creator` + the 17 `~/.claude/agents/<spec-agent>.md` to avoid duplicate
+`~/.claude/skills/app-spec-creator` + the 22 `~/.claude/agents/<spec-agent>.md` to avoid duplicate
 names with the `mp-spec` plugin.
 
 ## Improvement workflow (downstream project → mobile-pipeline PR)
@@ -202,8 +202,8 @@ See "Proposed alternatives" in `.ai/tasks/claude-003-marketplace.md` for the ful
   MyMoney specifics) and deciding whether to keep `--phase`/`--check` as a project-local command or port
   to the backlog board. Do it as a focused, verified step — not a blind archive (would break the active pipeline).
 - Optional installer automation for Codex **dev** agent shims. The skill/reference/template contract now
-  exists; a future `lib/sync.sh` or bootstrap/install command can generate the 18 project-local
-  `.codex/agents/mp-*.toml` files from `templates/dev/codex/agent.toml.tmpl`.
+  exists; `lib/sync.sh` keeps the derived project adapter current, while the 21 project-local
+  `.codex/agents/mp-*.toml` shims follow `templates/dev/codex/agent.toml.tmpl`.
 - `lib/build-marketplace.sh` may later merge with the codex-owned `lib/sync.sh` (codex-001).
 
 ## Renaming the repo / folder (manual)

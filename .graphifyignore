@@ -1,0 +1,13 @@
+# Graphify should index canonical sources, not rendered marketplace copies.
+# The generated trees remain available to runtime/CI but duplicate templates/**
+# almost one-for-one and otherwise dominate query results.
+claude-plugins/
+codex-plugins/
+
+# Historical and generated evidence is retained outside the retrieval corpus.
+archive/
+.ai/archive/
+.ai/proposals/.drained/
+.ai/proposals/archive/
+test-output/
+smoke-test/

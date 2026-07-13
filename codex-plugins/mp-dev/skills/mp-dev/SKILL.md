@@ -15,11 +15,21 @@ Use this skill as a thin Codex bridge over the canonical Claude `mp-dev` pipelin
    - `.claude/mp/extras/*.md`
    - `.claude/specs/README.md` when using the backlog board
    - `docs/implementation_plan/PROGRESS.md` when the project has phase-plan workflows
-3. Locate and read the canonical Claude command body:
-   - Prefer `%USERPROFILE%/.claude/plugins/cache/mobile-pipeline/mp-dev/<version>/commands/mp.md` on Windows or `~/.claude/plugins/cache/mobile-pipeline/mp-dev/<version>/commands/mp.md` on POSIX, choosing the newest available version.
-   - When working inside the `mobile-pipeline` checkout, use `claude-plugins/mp-dev/commands/mp.md`.
-   - If no canonical command body is available, stop before implementation modes and report the missing path.
-4. Interpret `$mp` and `/mp` as the Codex equivalent of the canonical `/mp` workflow.
+3. Resolve the compact runtime beside this skill:
+   - read `references/runtime/router.md` first;
+   - select exactly one mode through the router's dispatch table; `manifest.tsv` is a packaging
+     integrity marker, not runtime context;
+   - read that mode runbook and only the `contract-*.md` files named in its metadata;
+   - never preload every runbook. This lazy-loading boundary is part of the token budget.
+4. Resolve `MP_SCRIPTS`: prefer project `.codex/scripts/`, then `scripts/` beside this SKILL.md,
+   then project `.claude/scripts/` as a legacy fallback. A runtime command written as
+   `$MP_SCRIPTS/mp-*.sh` means the selected absolute directory, not a shell environment dependency.
+5. If the packaged runtime is absent, fall back to the newest Claude plugin
+   `commands/mp.md` (`%USERPROFILE%/.claude/plugins/cache/mobile-pipeline/mp-dev/<version>/` on
+   Windows, `~/.claude/plugins/cache/mobile-pipeline/mp-dev/<version>/` on POSIX, or
+   `claude-plugins/mp-dev/commands/mp.md` inside this checkout). Stop before implementation only
+   when neither runtime exists.
+6. Interpret `$mp` and `/mp` as the Codex equivalent of the selected `/mp` workflow.
 
 Supported modes include `--feature`, `--bugfix`, `--discuss`, `--spec`, `--coverage`, `--device`, `--fit`, `--plan`, `--phase`, `--check`, `--improve`, and `--reflect`.
 

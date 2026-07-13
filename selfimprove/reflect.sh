@@ -2,6 +2,9 @@
 # selfimprove/reflect.sh — L2 Reflect
 # Aggregate selfimprove/runs/*.jsonl into a retro report. Pure awk, no LLM.
 # Output: selfimprove/retro/retro-<YYYY-MM-DD>.md
+legacy_here="$(cd "$(dirname "$0")" && pwd)"
+exec bash "$legacy_here/retro.sh" "$@"
+
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"

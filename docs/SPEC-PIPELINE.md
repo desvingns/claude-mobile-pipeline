@@ -54,11 +54,11 @@ Unlike `bootstrap.sh`, it is run **once per machine**, not once per project.
 
 **Claude form** (`--harness claude`):
 - `~/.claude/skills/app-spec-creator/SKILL.md` + `prompts/` library
-- `~/.claude/agents/<agent-name>.md` — 17 canonical agent specs (claude form, `tool:codex` blocks stripped)
+- `~/.claude/agents/<agent-name>.md` — 22 canonical agent specs (claude form, `tool:codex` blocks stripped)
 
 **Codex form** (`--harness codex`):
 - `~/.codex/skills/app-spec-creator/SKILL.md` + `prompts/` library
-- `~/.codex/agents/<agent-name>.md` — 17 canonical agent specs (codex form, `tool:claude` blocks stripped)
+- `~/.codex/agents/<agent-name>.md` — 22 canonical agent specs (codex form, `tool:claude` blocks stripped)
 - `~/.codex/agents/<agent-name>.toml` — native Codex subagent shims that re-read the `.md`
 - `[agents]` block appended to `~/.codex/config.toml` (`max_threads=6`, `max_depth=1`)
 
@@ -165,13 +165,16 @@ spec/
 `design.md` is platform-neutral by design. iOS can be added later by populating
 `platform/ios.md` without reworking any shared artifact.
 
-## The 17 agents
+## The 22 agents
 
 All agents live in `templates/spec/agents/*.md` (canonical, tool-neutral). `install-spec.sh`
 renders them into the target harness(es).
 
 | Agent | Phase | Role |
 |---|---|---|
+| `crawl-navigator` | A.0-clone | Choose one bounded next action from the persisted reference state graph |
+| `crawl-executor` | A.0-clone | Execute the approved device action and capture screenshot/UI evidence |
+| `crawl-reviewer` | A.0-clone | Classify the observed state and score graph coverage |
 | `play-store-scraper` | A-clone | Scrape Google Play listing metadata (needs Chrome MCP) |
 | `screenshot-business-analyzer` | A-clone | Multimodal: screens, business rules, states, hints (opus) |
 | `screenshot-style-analyzer` | A-clone | Multimodal: design tokens, contrast pairs (opus) |
@@ -179,6 +182,7 @@ renders them into the target harness(es).
 | `navigation-flow-analyzer` | A-clone | Build navigation graph from business analysis |
 | `data-model-extractor` | A-clone | Derive neutral entities, relations, cache strategy |
 | `backend-api-extractor` | A-clone | Infer REST API contracts and third-party SDKs from UI evidence |
+| `grounding-scout` | A-feature | Return small, cited brownfield code/SPEC-board facts in parallel lanes |
 | `constitution-author` | C | Write `constitution.md` from project conventions |
 | `requirements-author` | C | EARS FR-NNN from analyzer output or interview answers |
 | `user-story-writer` | C | US-NNN linked to FR IDs |
@@ -188,6 +192,7 @@ renders them into the target harness(es).
 | `security-privacy-reviewer` | E | Data classification, consent, permission justification |
 | `analytics-taxonomy-designer` | E | Event taxonomy keyed to user stories |
 | `risk-estimator` | E | Risk register + effort estimate |
+| `fit-checklist-author` | E-clone | Per-screen visual/behavioural fit contract and reference registry |
 | `spec-evaluator` | F | Evaluator-optimizer critic; builds traceability.csv; read-only |
 
 Phase E specialists (`nfr-analyzer`, `a11y-reviewer`, `security-privacy-reviewer`,
@@ -214,8 +219,8 @@ inlining them, so a rubric can be bumped once and all consumers pick it up.
 - Native shims: `~/.codex/agents/<name>.toml` — Codex-native subagent wrappers. Each `.toml`
   re-reads its `.md` so the canonical source stays authoritative.
 - Generated shims pin both `model` and `model_reasoning_effort`: simple scrapers/constitution use
-  `gpt-5.4-mini`, most authoring/analysis roles use `gpt-5.4`, screenshot analyzers use `gpt-5.5`,
-  and `spec-evaluator` uses `gpt-5.5` with `xhigh` reasoning.
+  `gpt-5.4-mini`, most authoring/analysis roles use `gpt-5.4`, screenshot analyzers use `gpt-5.6`,
+  and `spec-evaluator` uses `gpt-5.6` with `xhigh` reasoning.
 - Gates: ask in chat + **STOP** — the skill never proceeds past a gate without an explicit
   user reply (no `AskUserQuestion` tool available in Codex)
 - Config: `[agents]` section merged into `~/.codex/config.toml`

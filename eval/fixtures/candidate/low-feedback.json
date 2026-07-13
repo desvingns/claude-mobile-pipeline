@@ -1,0 +1,12 @@
+{
+  "id": "feedback-fixture",
+  "status": "needs-human-rubric",
+  "kind": "low_feedback_candidate",
+  "source": {
+    "score": 2,
+    "correlation_id": "epic-42"
+  },
+  "expected": {
+    "human_rubric_required": true
+  }
+}
