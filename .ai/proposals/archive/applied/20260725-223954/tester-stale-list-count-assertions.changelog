@@ -1,0 +1,7 @@
+## 2026-07-18T18:30-tester-stale-list-count-assertions
+type: update
+target: templates/android/agents/{{PREFIX}}-tester-android.md
+summary: add an explicit bullet to the Stale-Test Update Rule requiring a grep for count/exhaustiveness assertions (assertCountEquals, .size ==, "exactly N", "distinct") whenever the modified composable renders a list/section.
+reason: on MyMoney, Verifier Check 6 bounced the same SPEC (factory-reset) back to Tester twice before a stale exhaustive section/row count assertion in SettingsRootContentTest was found — adding one row to a list-rendering composable reads as correct in isolation, so a behaviour-diff read alone misses a hard-coded count assertion on sibling elements. This is a generic Compose-testing blind spot, not project-specific.
+affects: claude, codex
+by: mp-improve

@@ -1,0 +1,17 @@
+diff --git a/templates/android/agents/{{PREFIX}}-tester-android.md b/templates/android/agents/{{PREFIX}}-tester-android.md
+index a6ee160..674fa9b 100644
+--- a/templates/android/agents/{{PREFIX}}-tester-android.md
++++ b/templates/android/agents/{{PREFIX}}-tester-android.md
+@@ -61,6 +61,12 @@ new behaviour:
+   a test (if one is now genuinely meaningless, rewrite it for the new behaviour instead).
+ - **Pure refactor / behaviour unchanged** → leave the test alone and record why no update is
+   needed.
++- **Modified composable renders a list/section** → grep the reconciled test file for
++  count/exhaustiveness assertions (`assertCountEquals`, `.size ==`, `"exactly N"`, `"distinct"`)
++  before declaring it reconciled. Adding one row/item to an existing list-rendering composable
++  reads as correct in isolation — the diff shows only the new row — but a stale hard-coded count
++  or exhaustiveness assertion on the SIBLING elements will not fail on its own; only this grep
++  step surfaces it.
+ 
+ Record every file you reconciled in `stale_tests_reviewed` (see Return). Skipping this silently
+ is a Verifier Check 6 failure: a feature that changes existing behaviour must leave that

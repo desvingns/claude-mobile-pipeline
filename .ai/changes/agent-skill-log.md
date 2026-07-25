@@ -486,3 +486,27 @@ summary: express the personal-project isolation rule generically without embeddi
 reason: exclusion rules should block private work integrations by category while keeping the personal repository itself free of corporate content.
 affects: claude, codex
 by: codex
+
+## 2026-07-18T18:29-backlog-consume-staleness-check
+type: update
+target: templates/common/commands/runtime/feature.md
+summary: Add a cheap staleness pre-check before promoting a backlog SPEC to active, offering close-as-delivered or re-scope when the SPEC's described behaviour already substantially exists in code.
+reason: Backlog-consume mode (--next / --backlog <slug>) skipped straight to Phase 2 Developer with no check that the SPEC's premise still matches current code, so a SPEC drafted ahead of consumption time could be fully or partially already built and get silently re-implemented — confirmed twice in one MyMoney epic (SPEC 23 CSV export/import fully pre-existing, SPEC 24 factory-reset partially pre-existing).
+affects: claude, codex
+by: claude
+
+## 2026-07-18T00:00-runner-android-junit-xml-verdict
+type: fix
+target: templates/android/scripts/{{PREFIX}}-runner-android.sh
+summary: derive the unit-test pass/fail verdict from JUnit XML (test-results/testDebugUnitTest/*.xml tests/failures/errors) instead of grepping the redirected console log for Gradle's rich-console-only "N tests completed" summary line.
+reason: the summary line is rendered only by Gradle's interactive rich console and is absent once stdout is redirected to a file (as this script does), so the console-grep heuristic fell through to a hard-coded fail regardless of true pass/fail state; confirmed masking real test-compile failures across 3+ separate /mp runs in one downstream project. Console-grep is kept only for extracting failing test names/messages when a failure is already known.
+affects: claude, codex
+by: mp-improve
+
+## 2026-07-18T18:30-tester-stale-list-count-assertions
+type: update
+target: templates/android/agents/{{PREFIX}}-tester-android.md
+summary: add an explicit bullet to the Stale-Test Update Rule requiring a grep for count/exhaustiveness assertions (assertCountEquals, .size ==, "exactly N", "distinct") whenever the modified composable renders a list/section.
+reason: on MyMoney, Verifier Check 6 bounced the same SPEC (factory-reset) back to Tester twice before a stale exhaustive section/row count assertion in SettingsRootContentTest was found — adding one row to a list-rendering composable reads as correct in isolation, so a behaviour-diff read alone misses a hard-coded count assertion on sibling elements. This is a generic Compose-testing blind spot, not project-specific.
+affects: claude, codex
+by: mp-improve

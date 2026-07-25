@@ -570,6 +570,7 @@ validate_dev_runtime() {
   done
 
   while IFS= read -r heading; do
+    heading="${heading%$'\r'}"
     [ -n "$heading" ] || continue
     grep -Fqx -- "$heading" "$router" "$runtime"/*.md || {
       echo "runtime-check: heading lost during split: $heading" >&2

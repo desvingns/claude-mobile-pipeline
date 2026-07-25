@@ -75,16 +75,26 @@ TEST_LOG="$LOG_DIR/tests.log"
 ./gradlew :app:testDebugUnitTest --no-daemon >"$TEST_LOG" 2>&1
 TEST_EXIT=$?
 
-SUMMARY_LINE=$(grep -E "[0-9]+ tests? completed" "$TEST_LOG" | tail -n 1 || true)
-if [ -n "$SUMMARY_LINE" ]; then
-  TOTAL=$(printf '%s' "$SUMMARY_LINE" | grep -oE '^[0-9]+ tests? completed' | grep -oE '^[0-9]+')
-  FAILED=$(printf '%s' "$SUMMARY_LINE" | grep -oE '[0-9]+ failed' | grep -oE '^[0-9]+' || echo 0)
-  TOTAL="${TOTAL:-0}"
-  FAILED="${FAILED:-0}"
+# JUnit XML is the source of truth for pass/fail counts: Gradle's "N tests
+# completed" summary line is only rendered by the rich console UI and is
+# absent once stdout is redirected to a file, as it is here — grepping for
+# it made this gate fail hard on every run regardless of true test state.
+TOTAL=0
+FAILED=0
+for xml in app/build/test-results/testDebugUnitTest/*.xml; do
+  [ -f "$xml" ] || continue
+  t=$(grep -oE '<testsuite\b[^>]*\btests="[0-9]+"' "$xml" | grep -oE 'tests="[0-9]+"' | grep -oE '[0-9]+')
+  f=$(grep -oE '<testsuite\b[^>]*\bfailures="[0-9]+"' "$xml" | grep -oE 'failures="[0-9]+"' | grep -oE '[0-9]+')
+  e=$(grep -oE '<testsuite\b[^>]*\berrors="[0-9]+"' "$xml" | grep -oE 'errors="[0-9]+"' | grep -oE '[0-9]+')
+  TOTAL=$((TOTAL + ${t:-0}))
+  FAILED=$((FAILED + ${f:-0} + ${e:-0}))
+done
+
+if [ "$TOTAL" -gt 0 ]; then
   PASSED=$((TOTAL - FAILED))
   TESTS_RESULT="${PASSED} passed / ${FAILED} failed"
 else
-  TESTS_RESULT="no test summary"
+  TESTS_RESULT="no test results"
   FAILED=1
   FAIL_LINE=$(grep -E "BUILD FAILED|FAILURE: |error:" "$TEST_LOG" | head -n 3 || true)
   if [ -n "$FAIL_LINE" ]; then
@@ -92,7 +102,7 @@ else
       [ -n "$line" ] && add_err "$line"
     done <<<"$FAIL_LINE"
   else
-    add_err "gradle exit=$TEST_EXIT, no parseable output"
+    add_err "gradle exit=$TEST_EXIT, no test-results XML found"
   fi
 fi
 

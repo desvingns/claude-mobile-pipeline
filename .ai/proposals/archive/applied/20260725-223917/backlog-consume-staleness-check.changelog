@@ -1,0 +1,7 @@
+## 2026-07-18T18:29-backlog-consume-staleness-check
+type: update
+target: templates/common/commands/runtime/feature.md
+summary: Add a cheap staleness pre-check before promoting a backlog SPEC to active, offering close-as-delivered or re-scope when the SPEC's described behaviour already substantially exists in code.
+reason: Backlog-consume mode (--next / --backlog <slug>) skipped straight to Phase 2 Developer with no check that the SPEC's premise still matches current code, so a SPEC drafted ahead of consumption time could be fully or partially already built and get silently re-implemented — confirmed twice in one MyMoney epic (SPEC 23 CSV export/import fully pre-existing, SPEC 24 factory-reset partially pre-existing).
+affects: claude, codex
+by: claude

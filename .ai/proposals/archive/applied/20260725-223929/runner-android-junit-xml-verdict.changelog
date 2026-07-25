@@ -1,0 +1,7 @@
+## 2026-07-18T00:00-runner-android-junit-xml-verdict
+type: fix
+target: templates/android/scripts/{{PREFIX}}-runner-android.sh
+summary: derive the unit-test pass/fail verdict from JUnit XML (test-results/testDebugUnitTest/*.xml tests/failures/errors) instead of grepping the redirected console log for Gradle's rich-console-only "N tests completed" summary line.
+reason: the summary line is rendered only by Gradle's interactive rich console and is absent once stdout is redirected to a file (as this script does), so the console-grep heuristic fell through to a hard-coded fail regardless of true pass/fail state; confirmed masking real test-compile failures across 3+ separate /mp runs in one downstream project. Console-grep is kept only for extracting failing test names/messages when a failure is already known.
+affects: claude, codex
+by: mp-improve
