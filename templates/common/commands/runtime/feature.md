@@ -11,6 +11,17 @@
    - **Partially exists** → surface the gap (built vs. still-needed) and offer "Re-scope the SPEC to the remaining gap before implementing? (y/N)" — on `y`, tighten `WHAT`/`CONSTRAINTS` to the actual remaining gap (still the same approved file, no new gate) before Phase 2; on `N`, proceed with the SPEC as written.
    - **No meaningful overlap found** → proceed silently to step 3. This check must stay cheap (a few targeted greps, not a full re-exploration) and must never block a genuinely-unstarted SPEC.
 3. Move it `backlog/ → active/`, set front-matter `Status: active`, announce which SPEC, then run **Phase 2** using the `=== SPEC === … === END SPEC ===` block read verbatim from the file.
+
+   **Presentation SPECs — announce intent, do not re-gate.** When `SPEC.LAYERS` contains
+   `presentation`, the announcement carries two extra sentences before Phase 2 starts: the visual
+   result you expect to produce, in plain language, and what you are treating as the target of
+   comparison (a reference image for a clone; otherwise the specific described behaviour or the
+   existing screen you are changing). This is **informational** — keep running; it is NOT a second
+   approval gate, and asking for one here would contradict the backlog-consume authorization. Its
+   only job is to surface a misread target in one line the user can interrupt, instead of after a
+   full build. Post-ship feedback shows misread visual intent is a top rework cause, and this mode
+   skips the Phase 1 echo-back that would otherwise have caught it. It applies to every project,
+   clone or not — a greenfield screen can be misread just as easily.
 4. On ship (Verifier pass / push), move it `active/ → done/`, fill `Implementation links` (commit + files), set `Status: done`. Then run the **Epic completion (final review + close)** check (see **SPEC backlog board**): if this was the epic's last SPEC, review the epic against ALL requirements in its `-00-overview.md` and, on a clean review, move that index `backlog/ → done/` too.
 
 If a free-text description was given instead → run Phase 0 → Phase 1 → Phase 2 as normal.

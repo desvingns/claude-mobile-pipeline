@@ -48,6 +48,17 @@ while [ $# -gt 0 ]; do
 done
 
 [ -n "$agent" ]   || emit '{"ok":false,"error":"--agent is required"}'
+# Normalize role aliases: retro aggregation groups by this exact string, so
+# `verifier-android` / `independent-critic` would otherwise split one role into
+# phantom buckets with sample sizes too small to act on.
+agent=$(printf '%s' "$agent" | tr '[:upper:]' '[:lower:]')
+agent="${agent%-android}"
+agent="${agent%-ios}"
+case "$agent" in
+  independent-critic|critic-independent) agent="critic" ;;
+  verifier-lite|verifier-full)           agent="verifier" ;;
+  developer-standard|developer-powerful) agent="developer" ;;
+esac
 [ -n "$verdict" ] || emit '{"ok":false,"error":"--verdict is required"}'
 case "$verdict" in pass|fail|partial) ;; *) emit '{"ok":false,"error":"--verdict must be pass, fail, or partial"}' ;; esac
 case "$retry" in ''|*[!0-9]*) retry=0 ;; esac

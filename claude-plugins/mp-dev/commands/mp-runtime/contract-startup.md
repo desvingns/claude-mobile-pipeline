@@ -2,7 +2,7 @@
 
 ## Startup
 
-1. Read `.claude/mp/config.json` (package, platforms, sourceRoot, stack, uiLang) and `CLAUDE.md` for tech stack/architecture, plus any `.claude/mp/extras/*.md` project overrides.
+1. Read `.claude/mp/config.json` (package, platforms, sourceRoot, stack, uiLang) and `CLAUDE.md` for tech stack/architecture. Do NOT glob `.claude/mp/extras/*.md` — each agent loads its own `extras/<agent-name>.md` on spawn, so reading the whole directory here duplicates it in the orchestrator for no benefit. Read only `extras/mp-token-budget.md` if it exists, plus any single extra whose rules you are about to apply yourself.
 2. Read `STATE.md` to know current iteration and what's in flight.
 3. Resolve shared memory once through
    `bash "${CLAUDE_PLUGIN_ROOT}/scripts/mp-brain-memory.sh" resolve`. If it returns a non-empty

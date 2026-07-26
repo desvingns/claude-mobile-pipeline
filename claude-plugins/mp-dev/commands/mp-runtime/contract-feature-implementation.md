@@ -153,6 +153,29 @@ STALE_TESTS_REVIEWED:
 If Verifier returns `pass=false` → stop. Show `static_checks` failures to user and ask:
 "Fix and continue? Describe the fix or run `/mp --bugfix`."
 
+**Step 4.6 — Scoped fit check (Android clone projects, presentation features only).**
+
+Run this BEFORE the push gate when all of these hold:
+- resolved platform is `android`, AND
+- `SPEC.LAYERS` contains `presentation`, AND
+- the project has clone references — `spec/fit/registry.csv` exists, or `.claude/mp/config.json`
+  sets `referenceScreenshotsDir`.
+
+Spawn `mp-fit-android` scoped to **only the screen(s) this SPEC touched** (not the whole app —
+that is what `/mp --fit` is for). Pass the changed presentation files so it can resolve which
+`screen_id`s are in scope.
+
+- Divergences below `fitThreshold` → report them to the user *before* the push question, and
+  include them in the checklist so the decision is informed.
+- No usable device/reference → skip with a one-line note (`fit: skipped — no device`) and continue
+  to the push gate. Do NOT hard-block here: an explicitly visual SPEC was already stopped by the
+  visual device pre-flight at the top of Phase 2, and a non-visual presentation tweak must not
+  require a booted emulator.
+
+Rationale: a visual miss caught here costs one scoped multimodal call; the same miss caught after
+push costs a full re-run of the whole pipeline. Post-ship feedback shows visual divergence is a
+dominant rework driver, and `--fit` today only runs after the user has already rejected the result.
+
 If Verifier returns `pass=true` → print `manual_checklist` verbatim to the user, then ask:
 "Pre-push verification: run the checklist on emulator/device. Ready to push? (y/N)"
 
@@ -171,7 +194,7 @@ git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
 ```
 If push fails → show error to user and continue to Step 6 without blocking.
 
-**Step 6** — Always spawn `mp-docs` (it always refreshes `STATE.md`, even if `DOCUMENTATION.md`/`CLAUDE.md` need no changes):
+**Step 6** — Docs. **Skip this step entirely when `.claude/mp/config.json` sets `"docsAgent": "inert"`** — a project whose `extras/mp-docs.md` makes the agent a no-op still pays a full agent spawn (body + `CLAUDE.md` + extra) to write nothing. Otherwise spawn `mp-docs` (it refreshes `STATE.md`, even if `DOCUMENTATION.md`/`CLAUDE.md` need no changes):
 ```
 SPEC: [paste]
 CHANGED_FILES: [list]

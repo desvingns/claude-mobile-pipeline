@@ -15,7 +15,7 @@
 set -uo pipefail
 
 SCREENSHOT_NEEDED="${1:-false}"
-TARGET_COVERAGE="${2:-65}"
+TARGET_COVERAGE_ARG="${2:-}"
 
 # ----- JBR detection (cross-platform; first match wins) ------------------
 for candidate in \
@@ -37,6 +37,17 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
   exit 0
 }
 cd "$REPO_ROOT"
+
+# Threshold precedence: explicit arg > .claude/mp/config.json coverageTargetPct > 65.
+# Resolved after cd so the config path is repo-relative. A project with its own
+# per-module coverage gate (kover koverLineFloors, jacoco rules) sets 0 here so this
+# flat bar cannot contradict the gate it already trusts.
+TARGET_COVERAGE="$TARGET_COVERAGE_ARG"
+if [ -z "$TARGET_COVERAGE" ]; then
+  TARGET_COVERAGE=$(grep -o '"coverageTargetPct"[[:space:]]*:[[:space:]]*[0-9]\{1,3\}' \
+                    .claude/mp/config.json 2>/dev/null | grep -o '[0-9]\{1,3\}$' | head -n 1)
+fi
+case "${TARGET_COVERAGE:-}" in ''|*[!0-9]*) TARGET_COVERAGE=65 ;; esac
 
 LOG_DIR=$(mktemp -d)
 trap 'rm -rf "$LOG_DIR"' EXIT
@@ -71,45 +82,60 @@ errors_json() {
 }
 
 # ----- Step 1: unit tests -----------------------------------------------
+# Default to the multi-module task: a `:app`-only run leaves a compile break in
+# other modules invisible and reports green. Override with MP_TEST_TASK.
 TEST_LOG="$LOG_DIR/tests.log"
-./gradlew :app:testDebugUnitTest --no-daemon >"$TEST_LOG" 2>&1
+TEST_TASK="${MP_TEST_TASK:-testDebugUnitTest}"
+# Results dir is named after the bare task, so a debug run never counts stale
+# testReleaseUnitTest XML (different variant, different numbers) as its own.
+RESULT_DIR="${TEST_TASK##*:}"
+# shellcheck disable=SC2086
+./gradlew $TEST_TASK --no-daemon --continue >"$TEST_LOG" 2>&1
 TEST_EXIT=$?
 
-# JUnit XML is the source of truth for pass/fail counts: Gradle's "N tests
-# completed" summary line is only rendered by the rich console UI and is
-# absent once stdout is redirected to a file, as it is here — grepping for
-# it made this gate fail hard on every run regardless of true test state.
-TOTAL=0
-FAILED=0
-for xml in app/build/test-results/testDebugUnitTest/*.xml; do
-  [ -f "$xml" ] || continue
-  t=$(grep -oE '<testsuite\b[^>]*\btests="[0-9]+"' "$xml" | grep -oE 'tests="[0-9]+"' | grep -oE '[0-9]+')
-  f=$(grep -oE '<testsuite\b[^>]*\bfailures="[0-9]+"' "$xml" | grep -oE 'failures="[0-9]+"' | grep -oE '[0-9]+')
-  e=$(grep -oE '<testsuite\b[^>]*\berrors="[0-9]+"' "$xml" | grep -oE 'errors="[0-9]+"' | grep -oE '[0-9]+')
+# JUnit XML is the source of truth for pass/fail counts. Gradle emits its
+# "N tests completed, M failed" line only inside AbstractTestTask's FAILURE
+# message — a fully green run never prints it at all — so grepping stdout made
+# this gate fail hard on every healthy run.
+TOTAL=0; FAILED=0; SKIPPED=0; SUITES=0
+while IFS= read -r xml; do
+  [ -n "$xml" ] || continue
+  attrs=$(tr '\n' ' ' <"$xml" | grep -o '<testsuite [^>]*>' | head -n 1)
+  [ -n "$attrs" ] || continue
+  t=$(printf '%s' "$attrs" | grep -o 'tests="[0-9]*"'    | grep -o '[0-9]*' | head -n 1)
+  f=$(printf '%s' "$attrs" | grep -o 'failures="[0-9]*"' | grep -o '[0-9]*' | head -n 1)
+  e=$(printf '%s' "$attrs" | grep -o 'errors="[0-9]*"'   | grep -o '[0-9]*' | head -n 1)
+  s=$(printf '%s' "$attrs" | grep -o 'skipped="[0-9]*"'  | grep -o '[0-9]*' | head -n 1)
   TOTAL=$((TOTAL + ${t:-0}))
   FAILED=$((FAILED + ${f:-0} + ${e:-0}))
-done
+  SKIPPED=$((SKIPPED + ${s:-0}))
+  SUITES=$((SUITES + 1))
+done < <(find . \( -name .git -o -name .claude -o -name archive -o -name node_modules \) -prune -o \
+              -path "*/build/test-results/$RESULT_DIR/*" -name 'TEST-*.xml' -print 2>/dev/null)
 
-if [ "$TOTAL" -gt 0 ]; then
-  PASSED=$((TOTAL - FAILED))
-  TESTS_RESULT="${PASSED} passed / ${FAILED} failed"
-else
-  TESTS_RESULT="no test results"
-  FAILED=1
-  FAIL_LINE=$(grep -E "BUILD FAILED|FAILURE: |error:" "$TEST_LOG" | head -n 3 || true)
-  if [ -n "$FAIL_LINE" ]; then
-    while IFS= read -r line; do
-      [ -n "$line" ] && add_err "$line"
-    done <<<"$FAIL_LINE"
+PASSED=$((TOTAL - FAILED - SKIPPED))
+if [ "$SUITES" -eq 0 ]; then
+  if [ "$TEST_EXIT" -eq 0 ]; then
+    TESTS_RESULT="0 tests (no test sources matched $TEST_TASK)"
   else
-    add_err "gradle exit=$TEST_EXIT, no test-results XML found"
+    TESTS_RESULT="build failed before any test ran"
+    FAILED=1
   fi
+else
+  TESTS_RESULT="${PASSED} passed / ${FAILED} failed / ${SKIPPED} skipped"
+fi
+
+# Non-zero Gradle exit with a clean XML set means compile/config breakage, not an
+# assertion failure — the usual way a broken module hides behind green test reports.
+if [ "$TEST_EXIT" -ne 0 ] && [ "$FAILED" -eq 0 ]; then
+  TESTS_RESULT="$TESTS_RESULT (gradle exit=$TEST_EXIT — compile/config failure)"
+  FAILED=1
 fi
 
 if [ "$FAILED" -gt 0 ]; then
   while IFS= read -r line; do
     [ -n "$line" ] && add_err "$line"
-  done < <(grep -E " FAILED$" "$TEST_LOG" | head -n 5 || true)
+  done < <(grep -E "BUILD FAILED|FAILURE: |^e: |error:| FAILED$" "$TEST_LOG" | head -n 5 || true)
 fi
 
 # ----- Step 2: detekt ----------------------------------------------------
@@ -160,15 +186,43 @@ else
   add_err "lint exit=$LINT_EXIT, no parseable summary"
 fi
 
-# ----- Step 4: JaCoCo coverage threshold --------------------------------
+# ----- Step 4: coverage threshold ---------------------------------------
+# Tool is auto-detected: hard-coding the JaCoCo task made every run of a
+# kover-based project fail a step it could never satisfy, dragging pass to false
+# regardless of code health. Kover emits JaCoCo-format XML, so one parser serves both.
 COVERAGE_RESULT="skipped"
 if [ "$TARGET_COVERAGE" -gt 0 ]; then
-  COV_LOG="$LOG_DIR/jacoco.log"
-  ./gradlew :app:jacocoUnitTestReport --no-daemon >"$COV_LOG" 2>&1
+  COV_LOG="$LOG_DIR/coverage.log"
+  COV_TASK="${MP_COVERAGE_TASK:-}"
+  if [ -z "$COV_TASK" ]; then
+    BUILD_FILES="build.gradle build.gradle.kts app/build.gradle app/build.gradle.kts gradle/libs.versions.toml"
+    # shellcheck disable=SC2086
+    if grep -qsli 'jacoco' $BUILD_FILES 2>/dev/null; then
+      COV_TASK=":app:jacocoUnitTestReport"
+    elif grep -qsli 'kover' $BUILD_FILES 2>/dev/null; then
+      COV_TASK="koverXmlReport"
+    fi
+  fi
+fi
+
+if [ "$TARGET_COVERAGE" -gt 0 ] && [ -z "$COV_TASK" ]; then
+  # No coverage plugin configured. A project fact, not a verification failure —
+  # it must never drag the verdict to false.
+  COVERAGE_RESULT="n/a (no coverage plugin detected)"
+elif [ "$TARGET_COVERAGE" -gt 0 ]; then
+  # shellcheck disable=SC2086
+  ./gradlew $COV_TASK --no-daemon >"$COV_LOG" 2>&1
   COV_EXIT=$?
 
-  COV_XML="app/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml"
-  if [ "$COV_EXIT" -eq 0 ] && [ -f "$COV_XML" ]; then
+  COV_XML=""
+  for cand in \
+      "app/build/reports/jacoco/jacocoUnitTestReport/jacocoUnitTestReport.xml" \
+      "build/reports/kover/report.xml" \
+      "app/build/reports/kover/report.xml"; do
+    if [ -f "$cand" ]; then COV_XML="$cand"; break; fi
+  done
+
+  if [ "$COV_EXIT" -eq 0 ] && [ -n "$COV_XML" ] && [ -f "$COV_XML" ]; then
     # The LAST <counter type="LINE" .../> in the report is the project-wide total.
     COV_PCT=$(grep -oE '<counter type="LINE" missed="[0-9]+" covered="[0-9]+"/>' "$COV_XML" |
               tail -n 1 |
@@ -182,7 +236,7 @@ if [ "$TARGET_COVERAGE" -gt 0 ]; then
     fi
   else
     COVERAGE_RESULT="unknown"
-    add_err "jacoco report missing (exit=$COV_EXIT)"
+    add_err "coverage report missing for task $COV_TASK (exit=$COV_EXIT)"
   fi
 fi
 
@@ -213,7 +267,7 @@ PASS=true
 [ "$DETEKT_RESULT" != "ok" ] && PASS=false
 [ "$LINT_RESULT" != "ok" ] && PASS=false
 case "$COVERAGE_RESULT" in
-  skipped|[0-9]*%) ;;
+  skipped|n/a*|[0-9]*%) ;;
   *) PASS=false ;;
 esac
 case "$SCREENSHOTS_RESULT" in

@@ -299,7 +299,7 @@ transform_dev_runtime_md() {
 
   if [ "$(basename "$src")" = "contract-startup.md" ]; then
     tmp="$(mktemp)"
-    sed -e 's#^1\. Read `CLAUDE.md` (at the repository root) for tech stack and architecture\.#1. Read `.claude/mp/config.json` (package, platforms, sourceRoot, stack, uiLang) and `CLAUDE.md` for tech stack/architecture, plus any `.claude/mp/extras/*.md` project overrides.#' \
+    sed -e 's#^1\. Read `CLAUDE.md` (at the repository root) for tech stack and architecture\.#1. Read `.claude/mp/config.json` (package, platforms, sourceRoot, stack, uiLang) and `CLAUDE.md` for tech stack/architecture. Do NOT glob `.claude/mp/extras/*.md` — each agent loads its own `extras/<agent-name>.md` on spawn, so reading the whole directory here duplicates it in the orchestrator for no benefit. Read only `extras/mp-token-budget.md` if it exists, plus any single extra whose rules you are about to apply yourself.#' \
         "$dst" > "$tmp"
     mv "$tmp" "$dst"
   fi
@@ -310,9 +310,12 @@ transform_dev_command() {
   local src="$1" dst="$2" tmp body
   transform_dev_md "$src" "$dst" 0
   [ "$DRY" = 1 ] && return 0
-  # augment the Startup step to read the runtime config + extras
+  # Augment the Startup step to read the runtime config. Deliberately NOT a
+  # glob over extras/: every agent already loads its own extras/<agent-name>.md
+  # on spawn, so reading the whole directory here duplicates all of it in the
+  # orchestrator for no benefit (~8k tokens on a 7-file project).
   tmp="$(mktemp)"
-  sed -e 's#^1\. Read `CLAUDE.md` (at the repository root) for tech stack and architecture\.#1. Read `.claude/mp/config.json` (package, platforms, sourceRoot, stack, uiLang) and `CLAUDE.md` for tech stack/architecture, plus any `.claude/mp/extras/*.md` project overrides.#' \
+  sed -e 's#^1\. Read `CLAUDE.md` (at the repository root) for tech stack and architecture\.#1. Read `.claude/mp/config.json` (package, platforms, sourceRoot, stack, uiLang) and `CLAUDE.md` for tech stack/architecture. Do NOT glob `.claude/mp/extras/*.md` — each agent loads its own `extras/<agent-name>.md` on spawn. Read only `extras/mp-token-budget.md` if it exists, plus any single extra whose rules you are about to apply yourself.#' \
       "$dst" > "$tmp"
   mv "$tmp" "$dst"
   # prepend command frontmatter (commands support description metadata; silences validate warning)

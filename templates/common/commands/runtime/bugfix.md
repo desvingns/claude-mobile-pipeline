@@ -140,7 +140,7 @@ git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
 ```
 If push fails → show error to user and continue without blocking.
 
-**Step 5 — Docs** (always — refreshes STATE.md):
+**Step 5 — Docs** (skip entirely when `.claude/{{PREFIX}}/config.json` sets `"docsAgent": "inert"`):
 Spawn `{{PREFIX}}-docs` with SPEC and CHANGED_FILES. It always refreshes `STATE.md`; it updates `DOCUMENTATION.md`/`CLAUDE.md` only if the fix reveals a new architectural decision.
 
 ### Phase 3 — Report
