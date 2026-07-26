@@ -6,6 +6,12 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-07-26
+
+### Fixed
+- Runner verification now trusts JUnit XML results and detects the coverage tool from the
+  generated reports, avoiding false failures when the configured coverage command is absent.
+
 ## [1.12.0] - 2026-07-13
 
 ### Added

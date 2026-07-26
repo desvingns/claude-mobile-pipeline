@@ -1,6 +1,6 @@
 {
   "name": "mp-spec",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "description": "Universal-intake spec bundle creator for mobile apps (greenfield interview or clone from screenshots/APK).",
   "author": {
     "name": "Kirill Shavrin",
