@@ -510,3 +510,19 @@ summary: add an explicit bullet to the Stale-Test Update Rule requiring a grep f
 reason: on MyMoney, Verifier Check 6 bounced the same SPEC (factory-reset) back to Tester twice before a stale exhaustive section/row count assertion in SettingsRootContentTest was found — adding one row to a list-rendering composable reads as correct in isolation, so a behaviour-diff read alone misses a hard-coded count assertion on sibling elements. This is a generic Compose-testing blind spot, not project-specific.
 affects: claude, codex
 by: mp-improve
+
+## 2026-07-28T11:38-board-move-stage-content-edits
+type: update
+target: templates/common/commands/runtime/contract-rules-board.md
+summary: New board rule: after `git mv` of a just-edited SPEC, run `git add <destination>` and verify with `git status` that BOTH the rename and the content change are staged before committing.
+reason: `git mv` with unstaged content edits stages a 100% rename only; the commit records the bare rename and silently drops the Status/front-matter re-scope (observed in MyMoney SPEC activation commit 4f0d2aaf, 2026-07-28).
+affects: claude, codex
+by: mp-improve
+
+## 2026-07-28T11:37-semantic-reviewer-test-pinned-symbols
+type: update
+target: templates/android/agents/{{PREFIX}}-semantic-reviewer-android.md
+summary: unused-symbol findings now require a unit/androidTest source sweep; test-pinned symbols downgrade to uncertainties[] with the test-reference count
+reason: test-pinned symbols are legitimate API surface; dead-code findings without a test-source sweep are false-positive-prone and can wrongly satisfy or block removal preconditions (observed in MyMoney 2026-07-28: LockController.markUnlocked() flagged unused at 0 production call sites while 5 tests pinned it)
+affects: claude, codex
+by: mp-improve

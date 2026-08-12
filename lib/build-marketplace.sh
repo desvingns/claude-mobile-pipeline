@@ -549,8 +549,8 @@ validate_dev_runtime() {
   done
 
   count="$(grep -h '^- ' "$runtime"/contract-rules*.md | wc -l | tr -d '[:space:]')"
-  [ "$count" -eq 31 ] || {
-    echo "runtime-check: expected 31 preserved rule bullets, found $count" >&2
+  [ "$count" -eq 32 ] || {
+    echo "runtime-check: expected 32 preserved rule bullets, found $count" >&2
     return 1
   }
 
