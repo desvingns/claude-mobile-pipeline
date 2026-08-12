@@ -1,0 +1,7 @@
+## 2026-07-28T11:38-board-move-stage-content-edits
+type: update
+target: templates/common/commands/runtime/contract-rules-board.md
+summary: New board rule: after `git mv` of a just-edited SPEC, run `git add <destination>` and verify with `git status` that BOTH the rename and the content change are staged before committing.
+reason: `git mv` with unstaged content edits stages a 100% rename only; the commit records the bare rename and silently drops the Status/front-matter re-scope (observed in MyMoney SPEC activation commit 4f0d2aaf, 2026-07-28).
+affects: claude, codex
+by: mp-improve

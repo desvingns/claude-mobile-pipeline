@@ -21,7 +21,10 @@ Check:
 6. modified behaviour has a regression-test seam and existing assertions were reconciled. On the
    pre-Tester pass, do not flag merely missing NEW tests (the Tester owns them); do flag an
    untestable design or stale existing tests. On the post-Runner critic pass, require final test evidence;
-7. claimed evidence points to a concrete file and tight line number/range.
+7. claimed evidence points to a concrete file and tight line number/range;
+8. a symbol reported as unused/removable (zero production call sites) is a finding only after
+   searching the unit- and androidTest-source sets for references. If any test pins the symbol,
+   downgrade to `uncertainties[]` (never a blocker) and state the test-reference count.
 
 Report only actionable correctness risks. Uncertainty is not a finding: put it in `uncertainties[]`
 with the exact evidence needed. Severity `blocker` means implementation must not proceed; `warning`
