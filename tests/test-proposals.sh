@@ -5,13 +5,19 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fixture="$repo/tests/fixtures/proposals"
 work="$(mktemp -d "${TMPDIR:-/tmp}/cmp-proposal-test.XXXXXX")"
 remote="$(mktemp -d "${TMPDIR:-/tmp}/cmp-proposal-remote.XXXXXX")"
+
+copy_lf() {
+  tr -d '\r' < "$1" > "$2"
+}
+
 git init -q --bare "$remote"
 git -C "$work" init -q -b main
+git -C "$work" config core.autocrlf false
 mkdir -p "$work/templates" "$work/.ai/proposals" "$work/.ai/changes"
 printf 'before\n' > "$work/templates/demo.txt"
 printf '# fixture log\n' > "$work/.ai/changes/agent-skill-log.md"
-cp "$fixture/change-demo.patch" "$work/.ai/proposals/change-demo.patch"
-cp "$fixture/change-demo.changelog" "$work/.ai/proposals/change-demo.changelog"
+copy_lf "$fixture/change-demo.patch" "$work/.ai/proposals/change-demo.patch"
+copy_lf "$fixture/change-demo.changelog" "$work/.ai/proposals/change-demo.changelog"
 git -C "$work" add .
 git -C "$work" -c user.name=cmp-test -c user.email=cmp@example.invalid commit -qm fixture
 git -C "$work" remote add origin "$remote"
@@ -42,12 +48,13 @@ grep -q '"transitions":\["queued","rejected","archived"\]' "$receipt"
 # preserve the patched branch/worktree for diagnosis.
 failed_work="$(mktemp -d "${TMPDIR:-/tmp}/cmp-proposal-build-fail.XXXXXX")"
 git -C "$failed_work" init -q -b main
+git -C "$failed_work" config core.autocrlf false
 mkdir -p "$failed_work/templates" "$failed_work/.ai/proposals" \
   "$failed_work/.ai/changes" "$failed_work/lib"
 printf 'before\n' > "$failed_work/templates/demo.txt"
 printf '# fixture log\n' > "$failed_work/.ai/changes/agent-skill-log.md"
-cp "$fixture/change-demo.patch" "$failed_work/.ai/proposals/change-demo.patch"
-cp "$fixture/change-demo.changelog" "$failed_work/.ai/proposals/change-demo.changelog"
+copy_lf "$fixture/change-demo.patch" "$failed_work/.ai/proposals/change-demo.patch"
+copy_lf "$fixture/change-demo.changelog" "$failed_work/.ai/proposals/change-demo.changelog"
 printf '%s\n' '#!/usr/bin/env bash' 'exit 9' > "$failed_work/lib/build-marketplace.sh"
 chmod +x "$failed_work/lib/build-marketplace.sh"
 git -C "$failed_work" add .

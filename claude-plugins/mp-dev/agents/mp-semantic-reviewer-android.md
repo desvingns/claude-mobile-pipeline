@@ -32,6 +32,11 @@ Check:
 8. a symbol reported as unused/removable (zero production call sites) is a finding only after
    searching the unit- and androidTest-source sets for references. If any test pins the symbol,
    downgrade to `uncertainties[]` (never a blocker) and state the test-reference count.
+9. every `blocker` is independently understandable without source-code context: explain the
+   problem in plain language, give one concrete user case in Given/When/Then (or equivalent),
+   state the user/business impact and why shipping is blocked, and make `fix` an exact correction
+   direction. Do not make the user infer the risk from technical evidence alone. Warnings may use
+   the compact technical format.
 
 Report only actionable correctness risks. Uncertainty is not a finding: put it in `uncertainties[]`
 with the exact evidence needed. Severity `blocker` means implementation must not proceed; `warning`
@@ -40,7 +45,11 @@ means the verifier/manual gate must explicitly cover it.
 Return exactly one JSON object:
 
 ```json
-{"pass":true,"risk":"standard|high","findings":[{"severity":"blocker|warning","file":"path","line":1,"rule":"scope|state|persistence|security|compatibility|tests","evidence":"one line","fix":"one line"}],"uncertainties":[{"question":"one line","evidence_needed":"one line"}],"confidence":"high|medium|low"}
+{"pass":true,"risk":"standard|high","findings":[{"severity":"blocker|warning","file":"path","line":1,"rule":"scope|state|persistence|security|compatibility|tests","evidence":"original technical evidence","fix":"exact correction direction","explanation":"plain-language problem; required for blocker","user_case":"Given ... When ... Then ...; required for blocker","impact":"user/business impact; required for blocker","blocking_reason":"why shipping is blocked; required for blocker"}],"uncertainties":[{"question":"one line","evidence_needed":"one line"}],"confidence":"high|medium|low"}
 ```
+
+Every finding retains `severity`, `file`, `line`, `rule`, `evidence`, and `fix`. For a blocker,
+`explanation`, `user_case`, `impact`, and `blocking_reason` must be non-empty; warnings may omit
+these added fields. Preserve the technical fields verbatim so the orchestrator can surface them.
 
 `pass` is false when any blocker exists. No prose or markdown fences around the response.

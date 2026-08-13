@@ -63,9 +63,22 @@ retry. The post-implementation router result replaces the initial aliases before
 
 After the deterministic reviewer passes, when `semantic_review=true`, spawn
 `mp-semantic-reviewer-android` with the approved SPEC file, scoped changed files, and
-deterministic-review evidence. Require `pass`, `findings[]`, and `uncertainties[]`; preserve
-each finding's file/line/rule/evidence/fix fields and pass the whole payload forward as evidence.
-A semantic failure blocks Tester/Runner and is reported to the user.
+deterministic-review evidence. The prompt must require `pass`, `findings[]`, and `uncertainties[]`.
+Every finding keeps the existing `severity`, `file`, `line`, `rule`, `evidence`, and `fix` fields.
+For every `severity:"blocker"`, also require non-empty `explanation`, `user_case`, `impact`, and
+`blocking_reason` fields; the blocker must be independently understandable without source-code
+context, and `fix` must state the exact correction direction. Warnings may use the compact
+technical format.
+
+Validate this conditional blocker contract before continuing. A blocker missing any required
+context field is an invalid semantic-review response and gets the standard one retry from
+`contract-execution.md`; if the retry is still invalid, stop and surface the contract failure.
+A semantic failure blocks Tester/Runner. When surfacing it, render every blocker as a
+self-contained report containing, in order: plain-language explanation, Given/When/Then (or
+equivalent) user case, user/business impact, why it blocks shipping, exact correction direction,
+then the original technical evidence (`file`, `line`, `rule`, `evidence`, `fix`) without omission or
+paraphrase. Pass the whole original payload forward as evidence. These requirements apply to the
+initial semantic review and the independent critic.
 
 When `independent_critic=true`, after the final Runner result and before Verifier run one
 additional semantic-reviewer pass with a fresh evidence packet containing only the SPEC, file
