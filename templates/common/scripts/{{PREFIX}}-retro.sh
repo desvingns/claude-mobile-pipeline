@@ -65,8 +65,8 @@ out="$retro_dir/retro-$date_tag.md"
   echo
   echo "## Per-agent pass-rate"
   echo
-  echo "| agent | runs | pass | fail | partial | pass-rate |"
-  echo "|---|---|---|---|---|---|"
+  echo "| agent | runs | pass | fail | partial | pass-rate | eligible (>=3 runs) |"
+  echo "|---|---|---|---|---|---|---|"
   cat "$runs_dir"/*.jsonl 2>/dev/null | awk '
     {
       a=""; v="";
@@ -78,8 +78,13 @@ out="$retro_dir/retro-$date_tag.md"
     }
     END {
       for (a in runs) {
-        r=runs[a]; pr=(r>0)?int((p[a]/r)*100):0;
-        printf "| %s | %d | %d | %d | %d | %d%% |\n", a, r, p[a]+0, f[a]+0, pt[a]+0, pr;
+        r=runs[a];
+        if (r >= 3) {
+          pr=int((p[a]/r)*100);
+          printf "| %s | %d | %d | %d | %d | %d%% | yes |\n", a, r, p[a]+0, f[a]+0, pt[a]+0, pr;
+        } else {
+          printf "| %s | %d | %d | %d | %d | n/a | no (<3 runs) |\n", a, r, p[a]+0, f[a]+0, pt[a]+0;
+        }
       }
     }
   ' | sort
@@ -103,6 +108,16 @@ out="$retro_dir/retro-$date_tag.md"
     cat "$runs_dir"/*.jsonl 2>/dev/null | grep '"agent":"feedback"' | grep -E 'score=[123][^0-9]' | tail -10 | sed 's/^/    /'
     echo
   fi
+  echo "## Eval candidates from low feedback"
+  echo
+  if cat "$runs_dir"/*.jsonl 2>/dev/null | grep '"agent":"feedback"' | grep -E 'score=[123][^0-9]' >/dev/null 2>&1; then
+    echo "Before changing a prompt, convert each candidate below into a reproducible eval case and record its expected outcome."
+    echo
+    cat "$runs_dir"/*.jsonl 2>/dev/null | grep '"agent":"feedback"' | grep -E 'score=[123][^0-9]' | tail -10 | sed 's/^/    /'
+  else
+    echo "_none_"
+  fi
+  echo
   echo "## Recorded usage, cost, duration, and correlation"
   echo
   cat "$runs_dir"/*.jsonl 2>/dev/null | awk '
@@ -140,9 +155,27 @@ out="$retro_dir/retro-$date_tag.md"
   echo
   echo "## Proposed improvements (human-gated)"
   echo
-  echo "- [ ] Inspect the lowest measured pass-rate only when its sample has at least 3 runs."
-  echo "- [ ] Cluster concrete fail/partial evidence; never copy this checklist into a lesson."
-  echo "- [ ] Promote low-feedback evidence into an eval candidate before changing a prompt."
+  echo "## Failure/partial clusters"
+  echo
+  if cat "$runs_dir"/*.jsonl 2>/dev/null | grep -E '"verdict":"(fail|partial)"' >/dev/null 2>&1; then
+    cat "$runs_dir"/*.jsonl 2>/dev/null | awk '
+      /"verdict":"(fail|partial)"/ {
+        a=""; v=""; metric=""; note="";
+        if (match($0, /"agent":"[^"]*"/)) a=substr($0, RSTART+9, RLENGTH-10);
+        if (match($0, /"verdict":"[^"]*"/)) v=substr($0, RSTART+11, RLENGTH-12);
+        if (match($0, /"metric":"[^"]*"/)) metric=substr($0, RSTART+10, RLENGTH-11);
+        if (match($0, /"note":"[^"]*"/)) note=substr($0, RSTART+8, RLENGTH-9);
+        key=a " | " v " | " metric " | " note;
+        count[key]++;
+        evidence[key]=$0;
+      }
+      END {
+        for (key in count) printf "%d\t%s\n  evidence: %s\n", count[key], key, evidence[key];
+      }
+    ' | sort -rn -k1,1
+  else
+    echo "_none_"
+  fi
   echo
 } > "$out"
 
