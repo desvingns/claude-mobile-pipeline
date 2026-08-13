@@ -1,6 +1,6 @@
 # Handoff
 
-UPDATED: 2026-07-13 by codex
+UPDATED: 2026-08-13 by codex
 
 ## DONE
 
@@ -18,6 +18,8 @@ UPDATED: 2026-07-13 by codex
 - Rebuilt Graphify from canonical sources only; generated plugin/archive nodes are excluded.
 - Archived the prior long handoff at
   `.ai/archive/handoffs/handoff-through-2026-07-13.md` instead of discarding history.
+- Reviewed PR #7 (`improve/semantic-blocker-user-impact-v8`), fixed the Windows-only CRLF
+  proposal-fixture failure, passed the full CI matrix, and merged it into `main` as `a973c2e`.
 
 ## DECISIONS
 
@@ -28,6 +30,8 @@ UPDATED: 2026-07-13 by codex
   generalized lessons can only enter `brain/inbox/` for human promotion.
 - Down-tiering is conservative: deterministic/mechanical work uses cheaper routes, while ambiguous,
   broad, security-sensitive, migration, and critic work retains stronger routes.
+- Cross-platform proposal tests normalize copied text fixtures to LF and disable `core.autocrlf` in
+  temporary repos; production proposal-drain behavior remains unchanged.
 
 ## VERIFIED
 
@@ -40,6 +44,8 @@ UPDATED: 2026-07-13 by codex
 - Bootstrap smoke output contains 21 agents, 30 runtime files, and 11 scripts with zero leaks.
 - Canonical Graphify rebuild succeeds with 1,708 nodes / 1,644 edges and zero generated-plugin or
   archive source nodes. `git diff --check` passes.
+- PR #7 CI passed on Ubuntu, macOS, and Windows after the fixture fix; local validation also passed
+  Bash syntax, all 11 deterministic/eval entry points, marketplace dry-run, and leak checks.
 
 ## NEXT
 
@@ -55,5 +61,4 @@ Implementation is complete. User/release owner controls external device validati
 
 ## BLOCKERS
 
-None for the implemented release. Local shellcheck is unavailable and remains covered by the
-cross-platform CI workflow; the first pushed CI run is the authoritative execution.
+None. Local shellcheck is unavailable, but the GitHub Ubuntu shellcheck gate passed for PR #7.
