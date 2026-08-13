@@ -41,7 +41,7 @@ message — no prose before or after, no markdown fences. The shape depends on t
 | `{{PREFIX}}-tester-<platform>`    | JSON `{"test_files":[...], "screenshot_record_needed": bool, ...}` |
 | `{{PREFIX}}-verifier-<platform>`  | JSON `{"pass": bool, "static_checks":{...}, "manual_checklist":[...]}` |
 | `{{PREFIX}}-verifier-lite-android` | JSON `{"pass": bool, "static_checks":{...}, "manual_checklist":[...]}` |
-| `{{PREFIX}}-semantic-reviewer-android` | JSON `{"pass": bool, "risk":"...", "findings":[...], "uncertainties":[...], "confidence": number}` |
+| `{{PREFIX}}-semantic-reviewer-android` | JSON `{"pass": bool, "risk":"...", "findings":[...], "uncertainties":[...], "confidence": number}`; each finding keeps `severity/file/line/rule/evidence/fix`, and a blocker additionally requires `explanation/user_case/impact/blocking_reason` |
 | `{{PREFIX}}-docs`                 | JSON `{"committed": bool, "files":[...], "commit":"hash"}` (files/commit only when committed=true) |
 
 After every LLM agent call:

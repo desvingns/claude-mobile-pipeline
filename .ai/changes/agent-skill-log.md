@@ -526,3 +526,11 @@ summary: unused-symbol findings now require a unit/androidTest source sweep; tes
 reason: test-pinned symbols are legitimate API surface; dead-code findings without a test-source sweep are false-positive-prone and can wrongly satisfy or block removal preconditions (observed in MyMoney 2026-07-28: LockController.markUnlocked() flagged unused at 0 production call sites while 5 tests pinned it)
 affects: claude, codex
 by: mp-improve
+
+## 2026-08-12T21:30-semantic-blocker-user-impact
+type: update
+target: templates/android/agents/{{PREFIX}}-semantic-reviewer-android.md, templates/common/commands/runtime/contract-risk-routing.md, templates/common/commands/runtime/contract-execution.md
+summary: semantic blockers now require plain-language context, a concrete user case, shipping impact, exact correction direction, and preserved technical evidence
+reason: technical-only blocker reports can stop the pipeline without explaining the release risk to the user; an entitlement state-machine review exposed this gap when a broken server record and whitelist expiry were only understandable after a separate explanation
+affects: claude, codex
+by: mp-improve
