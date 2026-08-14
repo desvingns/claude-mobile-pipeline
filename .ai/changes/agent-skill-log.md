@@ -534,3 +534,11 @@ summary: semantic blockers now require plain-language context, a concrete user c
 reason: technical-only blocker reports can stop the pipeline without explaining the release risk to the user; an entitlement state-machine review exposed this gap when a broken server record and whitelist expiry were only understandable after a separate explanation
 affects: claude, codex
 by: mp-improve
+
+## 2026-08-13T20:10-retro-evidence-gates-v2
+type: update
+target: templates/common/scripts/{{PREFIX}}-retro.sh
+summary: retro reports now enforce sample-size eligibility, cluster concrete failures, and surface low-feedback eval candidates before prompt changes
+reason: the retro checklist was advisory and could overinterpret tiny samples, lose recurring failure structure, or change prompts before converting low feedback into reproducible evaluation cases
+affects: claude, codex
+by: {{PREFIX}}-improve
