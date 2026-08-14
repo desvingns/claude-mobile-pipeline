@@ -6,6 +6,13 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-14
+
+### Added
+- Retro reports now mark pass-rate samples with fewer than three runs as ineligible,
+  surface low-feedback events as reproducible evaluation candidates, and cluster
+  concrete fail/partial evidence for human-gated follow-up.
+
 ## [1.12.1] - 2026-07-26
 
 ### Fixed

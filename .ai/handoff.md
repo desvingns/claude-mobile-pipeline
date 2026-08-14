@@ -1,6 +1,6 @@
 # Handoff
 
-UPDATED: 2026-08-13 by codex
+UPDATED: 2026-08-14 by codex
 
 ## DONE
 
@@ -20,6 +20,9 @@ UPDATED: 2026-08-13 by codex
   `.ai/archive/handoffs/handoff-through-2026-07-13.md` instead of discarding history.
 - Reviewed PR #7 (`improve/semantic-blocker-user-impact-v8`), fixed the Windows-only CRLF
   proposal-fixture failure, passed the full CI matrix, and merged it into `main` as `a973c2e`.
+- Reviewed and merged PR #8 (`improve/retro-evidence-gates-v2`) into `main` as `3b10073`.
+- Started release `1.13.0`: retro reports now gate pass-rate eligibility at three runs,
+  expose low-feedback eval candidates, and cluster fail/partial evidence.
 
 ## DECISIONS
 
@@ -61,4 +64,4 @@ Implementation is complete. User/release owner controls external device validati
 
 ## BLOCKERS
 
-None. Local shellcheck is unavailable, but the GitHub Ubuntu shellcheck gate passed for PR #7.
+None. Local shellcheck is unavailable; PR #8's GitHub Linux/macOS/Windows validation passed.
