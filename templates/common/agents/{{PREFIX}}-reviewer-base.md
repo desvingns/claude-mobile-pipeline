@@ -34,7 +34,12 @@ Seven checks (the first four are layer-boundary; checks 5–6 are platform-speci
    - No empty test bodies — every `@Test` / `func test_...` must have at least one assertion.
    - No trivially-true assertions (`assertTrue(true)`, `XCTAssertTrue(true)`, `assertEquals(1, 1)`).
    - No blocking sleeps (`Thread.sleep`, `Task.sleep` outside `XCTestExpectation` machinery, `sleep`).
-   - Kotlin-specific: no `runBlocking { ... }` inside test bodies — use `runTest { ... }` from `kotlinx-coroutines-test`.
+   - Virtual-time default: a test must use the platform's controlled-clock harness (Kotlin
+     `runTest { ... }` from `kotlinx-coroutines-test`) unless it drives real I/O — a real HTTP
+     server, socket, or filesystem — in which case it opts out explicitly with a
+     `// {{PREFIX}}-real-io: <reason>` marker on the line above (Kotlin: `runBlocking`). Flag an
+     unmarked opt-out, and flag a test that combines a production timeout/delay with an
+     uncontrolled real callback: neither clock model can make that one deterministic.
 
    Pre-existing test files NOT listed in CHANGED_FILES are out of scope (don't flag legacy debt).
 

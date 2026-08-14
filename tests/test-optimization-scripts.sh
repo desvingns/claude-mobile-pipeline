@@ -23,6 +23,52 @@ printf '%s' "$out" | grep -q '"independent_critic":true'
 out=$(bash "$risk" --task feature --spec "$work/missing.md")
 printf '%s' "$out" | grep -q '"ok":false'
 
+# A SPEC written in the team's own language must route on what it describes, not on
+# which language it happens to be written in. This one crosses session auth and
+# bounded polling; the English-only keyword lists scored it as routine work and sent
+# it to the cheap developer with no independent critic.
+cat > "$work/ru.md" <<'RUSPEC'
+# Состояние награды
+WHAT: клиент читает состояние с сервера и опрашивает его с нарастающей паузой.
+CONSTRAINTS:
+  - Поллинг ограничен по времени и обязан прекращаться при уходе экрана —
+    никаких вечных корутин.
+  - Поведение при 401 (сессия истекла): состояние сбрасывается.
+RUSPEC
+out=$(bash "$risk" --task feature --spec "$work/ru.md")
+printf '%s' "$out" | grep -q '"risk":"high"'
+printf '%s' "$out" | grep -q '"developer_tier":"powerful"'
+printf '%s' "$out" | grep -q '"independent_critic":true'
+printf '%s' "$out" | grep -q 'security_or_payment'
+printf '%s' "$out" | grep -q 'state_or_concurrency'
+
+# Declared front-matter signals are authoritative and collapse onto the same signal
+# names as prose matching, so one concern is never paid for twice.
+cat > "$work/declared.md" <<'DECLSPEC'
+# Slice
+Risk-signals: auth, di-wiring, concurrency
+WHAT: nothing in this prose hints at any risk at all.
+DECLSPEC
+out=$(bash "$risk" --task feature --spec "$work/declared.md")
+printf '%s' "$out" | grep -q '"risk":"high"'
+printf '%s' "$out" | grep -q '"score":9'
+
+# The same concern reached from prose AND a declared tag counts once.
+cat > "$work/dup.md" <<'DUPSPEC'
+# Slice
+Risk-signals: auth, auth, security
+WHAT: authentication and token handling.
+DUPSPEC
+out=$(bash "$risk" --task feature --spec "$work/dup.md")
+printf '%s' "$out" | grep -q '"score":4'
+
+# Scoring must not scale with diff size: five persistence files are one signal.
+printf '# Feature\nRoom migration.\n' > "$work/persist.md"
+out=$(bash "$risk" --task feature --spec "$work/persist.md" \
+  --changed core/database/Migration1.kt --changed core/database/Migration2.kt \
+  --changed core/database/Migration3.kt)
+printf '%s' "$out" | grep -q '"score":8'
+
 out=$(bash "$spec_scripts/spec-cache.sh" fingerprint "$work/cache" intake "$work/low.md")
 fingerprint=$(printf '%s' "$out" | sed -nE 's/.*"fingerprint":"([a-f0-9]+)".*/\1/p')
 [ -n "$fingerprint" ]

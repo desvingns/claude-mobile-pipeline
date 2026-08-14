@@ -17,15 +17,22 @@ bash .claude/scripts/{{PREFIX}}-record-run.sh --agent <step> --verdict pass|fail
   --correlation-id "$CORRELATION_ID"
 ```
 
+**`--duration-ms` and `--correlation-id` are required on every record point.** Take the duration
+from the wall-clock interval you actually waited on the step; never omit it because the harness did
+not hand you a number. Without them the log can say a run failed but not where the hours went, and
+a retro can only infer cost from timestamps that stop at the step boundary — which is how a
+multi-hour run gets blamed on the build system when it was spent in review cycles. A record missing
+either field is a defect in the orchestration, not an acceptable partial record.
+
 Record points (one call each, regardless of verdict):
 
 | step (`--agent`) | when | verdict / metric |
 |---|---|---|
-| `developer` | after each Developer call, including the one allowed auto-fix | payload validity/result; `tier=<standard|powerful>;purpose=<implement|autofix>` |
-| `reviewer` | after the reviewer step resolves (script or agent fallback) | from `pass`; `violations=<N>` |
-| `semantic-reviewer` | after the routed semantic pass | from `pass`; `findings=<N>;risk=<risk>` |
+| `developer` | after each Developer call, including the one allowed auto-fix | payload validity/result; `tier=<standard|powerful>;purpose=<implement|autofix|repair>`; on a semantic repair also `repair_cycle=<N>;finding_ids=<ID,ID>` |
+| `reviewer` | after the reviewer step resolves (script or agent fallback) | from `pass`; `violations=<N>`; add `warnings=<N>` in warn-only mode |
+| `semantic-reviewer` | after the routed semantic pass | from `pass`; `findings=<N>;risk=<risk>;repair_cycle=<N>`; add `finding_ids=<ID,ID>` when findings exist, and `route_escalated=1` when the ratchet fired |
 | `critic` | after the independent fresh-evidence pass, when routed | from `pass`; `findings=<N>;risk=<risk>` |
-| `runner`   | after the runner outcome is FINAL (first pass, or after the one auto-fix retry) | from final `pass`; `tests=<...>;lint=<ok\|fail>`; `--retry 1` when the retry ran |
+| `runner`   | after each runner outcome, scoped and full | from `pass`; `mode=<scoped\|full>;tests=<...>;lint=<ok\|fail>`; `--retry 1` when the auto-fix retry ran |
 | `verifier` | after the verifier step resolves | from `pass`; `checks=<N failed or ok>` |
 | `fit`      | after `--fit` Phase 3 parses the `=== FIT ===` block | `pass` when no unexplained divergences, else `partial`; `fit=<overall_score>` |
 | `feedback` | the post-ship feedback question (see **Post-ship** below) | `score=<1-5>` |

@@ -87,9 +87,22 @@ The plugin agents are project-agnostic; project facts are read at runtime from
   "platforms": ["android"],
   "sourceRoot": "app/src/main/java/com/kshavrin/mymoney",
   "stack": "Kotlin · Compose Material3 · Hilt · Room · …",
-  "uiLang": "en"
+  "uiLang": "en",
+  "coverageTargetPct": 0,
+  "docsAgent": "inert",
+  "reviewerMode": "enforce"
 }
 ```
+
+| key | effect |
+|---|---|
+| `coverageTargetPct` | line-coverage floor for the full runner; `0` disables it (use when the project has its own per-module kover/jacoco gate) |
+| `docsAgent` | `"inert"` skips the docs step entirely instead of paying an agent spawn to write nothing |
+| `reviewerMode` | `"enforce"` (default) or `"warn-only"`. In `warn-only` the orchestrator passes `--warn-only` to the deterministic reviewer, so findings arrive under `warnings` with `by_check` counts and do not block. Intended for adopting checks a codebase has never run against — sizing the backlog first, then switching to `enforce`. |
+
+`sourceRoot` describes the single-module layout. The deterministic reviewer resolves layers from
+the path (`domain/`, `data/`, `presentation/`, `ui/` components, or a `feature/*` module), so a
+multi-module project needs no extra configuration.
 
 Optional per-agent overrides go in **`.claude/mp/extras/<agent-name>.md`** (e.g.
 `.claude/mp/extras/mp-developer-android.md`). Each agent reads its extras file *after* its body;

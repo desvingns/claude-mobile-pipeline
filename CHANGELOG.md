@@ -6,6 +6,62 @@ This repo uses [Semantic Versioning](https://semver.org/) — see `README.md` �
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-14
+
+Closing the gaps a post-run analysis of one cross-layer SPEC exposed: four gates were
+either not running, running against the change, or missing a contract entirely.
+
+### Fixed
+- The deterministic Android reviewer resolved exactly one source root
+  (`app/src/main/java/<pkg>`), so on a multi-module project **every check silently
+  skipped** and it always answered `{"pass":true,"violations":[]}`. Layers are now
+  resolved per file — a `domain`/`data`/`presentation`/`ui` path component, or a
+  `feature/*` module — covering both layouts and both `src/main/java` and
+  `src/main/kotlin`. Test hygiene applies to every source set, not only `app/`.
+- The risk router's keyword lists were English-only and its file globs lowercase, so a
+  SPEC written in another language, crossing session auth, DI wiring, and bounded
+  polling, scored 4 and routed to the cheap developer with no independent critic. The
+  router now reads a declared `Risk-signals:` line, matches non-English prose, counts
+  each signal once instead of once per file, and detects DI/persistence from file
+  content rather than file names.
+- The blanket "no `runBlocking` in tests" rule forced real MockWebServer/OkHttp tests
+  under `runTest`'s virtual clock, where the production timeout expires before the real
+  response lands. `runTest` remains the default; real-I/O tests opt out per call site
+  with a `// <prefix>-real-io: <reason>` marker, and mixing a production timeout with an
+  uncontrolled real callback is now itself a finding.
+- Reviewer check 6b scanned a fixed 20-line window and reported healthy long tests as
+  assertion-free; it now scans to the end of the test function.
+
+### Added
+- Reviewer check 7 — module dependency direction: layering inversion, declared cycles,
+  and imports from a module the importer does not declare (the shape of a DI break that
+  otherwise surfaces only at aggregate build time). Test-only configurations are
+  excluded, and foundation modules (`common`/`util`/`model`/`kernel`/`shared`) rank below
+  domain so a correctly layered project is not flagged.
+- Reviewer `--warn-only` mode plus `"reviewerMode"` in project config, for adopting
+  checks on a codebase they have never run against without blocking on day one.
+- A semantic repair-loop contract: stable finding IDs, one batched holistic re-audit
+  instead of per-cluster patching, a `resolved_findings` payload, a two-cycle budget, and
+  escalation to a new `{{PREFIX}}-architect` PREFLIGHT capsule mode.
+- An escalation ratchet: when the semantic reviewer reports `risk:"high"` or any blocker,
+  the route rises to the powerful developer plus independent critic for the rest of the
+  SPEC. Its verdict was previously recorded and discarded.
+- Runner `--scope "<modules>"` for module-only unit tests with no lint/coverage/
+  screenshots; the feature contract now iterates scoped and runs the full suite exactly
+  once as the final gate.
+- An epic-level `## Design capsule` written by the planner into `<epic>-00-overview.md`
+  and injected into every backlog SPEC as `DESIGN_CAPSULE`. Backlog-consume mode skips
+  Phase 0/1, so until now no step performed a design pass on a planned slice. Costs no
+  extra agent call.
+
+### Changed
+- `duration_ms` and `correlation_id` are required at every telemetry record point;
+  `repair_cycle`, `finding_ids`, `route_escalated`, and runner `mode` join the metric
+  strings, and the retro reports instrumentation compliance before any cost conclusion.
+- The reviewer's per-file work runs without subshells and collapses test hygiene into one
+  `awk` pass — about 10x faster on a real diff, which is what keeps a cheap gate cheap
+  enough to actually run.
+
 ## [1.13.0] - 2026-08-14
 
 ### Added

@@ -27,7 +27,7 @@ mkdir -p "$proj"
 cd "$proj"
 git init -q .
 
-for m in core/domain core/common core/network core/ads core/sync feature/wallet; do
+for m in core/domain core/common core/network core/ads core/sync core/testing feature/wallet; do
   mkdir -p "$m/src/main/kotlin/$pkg_path/$m" "$m/src/test/kotlin/$pkg_path/$m"
   printf 'dependencies {\n}\n' > "$m/build.gradle.kts"
 done
@@ -41,8 +41,17 @@ deps() { # deps <module> <dep...>
   } > "$m/build.gradle.kts"
 }
 
+test_deps() { # test_deps <module> <dep...>  — test-only configuration
+  local m="$1"; shift
+  {
+    printf 'dependencies {\n'
+    for d in "$@"; do printf '    testImplementation(project(":%s"))\n' "${d//\//:}"; done
+    printf '}\n'
+  } > "$m/build.gradle.kts"
+}
+
 deps core/common
-deps core/domain
+deps core/domain core/common
 deps core/network core/common
 deps core/ads core/common core/domain core/network
 deps core/sync core/common core/domain
@@ -86,6 +95,24 @@ out=$(bash "$script" "$inverted")
 printf '%s' "$out" | grep -q '"pass":false'
 printf '%s' "$out" | grep -q 'depends on higher layer :feature:wallet'
 deps core/network core/common
+
+# ----- Check 7a: a domain module may depend on foundation modules ---------
+# core/common holds shared primitives and sits below domain. Ranking that edge as an
+# inversion would flag a correctly layered project on its very first run.
+domain_dep="core/domain/src/main/kotlin/$pkg_path/core/domain/Balance.kt"
+printf 'package %s.core.domain\n\nclass Balance\n' "$pkg" > "$domain_dep"
+out=$(bash "$script" "$domain_dep")
+printf '%s' "$out" | grep -q '"pass":true'
+
+# ----- Check 7b: test-only dependencies are not production edges -----------
+# :core:testing ships fakes for :core:ads and :core:ads uses them in its own tests.
+# That is the standard arrangement, not a cycle.
+mkdir -p "core/testing/src/main/kotlin/$pkg_path/core/testing"
+deps core/testing core/domain
+test_deps core/ads core/testing
+out=$(bash "$script" "core/ads/build.gradle.kts")
+printf '%s' "$out" | grep -q '"pass":true'
+deps core/ads core/common core/domain core/network
 
 # ----- Check 7b: declared cycle ------------------------------------------
 deps core/ads core/common core/domain core/network core/sync

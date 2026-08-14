@@ -122,6 +122,9 @@ out="$retro_dir/retro-$date_tag.md"
   echo
   cat "$runs_dir"/*.jsonl 2>/dev/null | awk '
     {
+      events++;
+      if ($0 !~ /"duration_ms":[0-9]+/) no_dur++;
+      if ($0 !~ /"correlation_id":"[^"]+"/) no_corr++;
       usage = ($0 ~ /"(tokens_in|tokens_out|tokens_cached|tokens_reasoning|cost_usd|duration_ms)":/);
       if (usage) n++;
       if (match($0, /"usage_source":"provider"/)) provider++;
@@ -142,6 +145,15 @@ out="$retro_dir/retro-$date_tag.md"
       if (dn>0) printf " / %.0f ms avg", dur/dn;
       printf " · correlated events: %d\n", corr;
       printf "Usage source: provider %d · estimated %d · unspecified %d\n", provider, estimated, unspecified;
+      # Instrumentation compliance is reported before any conclusion drawn from the
+      # numbers above. Both fields are required per contract-telemetry.md, and a run
+      # whose events lack them cannot tell you where its time went — every cost claim
+      # about it is inference from step boundaries, not measurement.
+      if (events>0) {
+        printf "Instrumentation: %d events · missing duration_ms: %d (%.0f%%) · missing correlation_id: %d (%.0f%%)\n", \
+               events, no_dur, 100*no_dur/events, no_corr, 100*no_corr/events;
+        if (no_dur*2 > events) print "**Under-instrumented**: over half the events carry no duration. Fix recording before drawing cost conclusions from this window.";
+      }
     }
   '
   echo

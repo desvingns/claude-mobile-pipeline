@@ -35,9 +35,9 @@ message — no prose before or after, no markdown fences. The shape depends on t
 
 | Agent          | Payload         |
 |----------------|-----------------|
-| `mp-architect`            | One BRAINSTORM block (framed by `=== BRAINSTORM ===` markers) |
-| `mp-developer-<platform>` | JSON `{"changed_files":[...], "commit":"hash"}` |
-| `mp-developer-standard-android` | JSON `{"changed_files":[...], "commit":"hash"}` |
+| `mp-architect`            | One BRAINSTORM block (framed by `=== BRAINSTORM ===` markers), or one CAPSULE block in `PREFLIGHT` mode |
+| `mp-developer-<platform>` | JSON `{"changed_files":[...], "commit":"hash"}`; on a semantic repair pass also `"resolved_findings":[{"id":..., "status":"fixed\|regressed\|superseded", "note":...}]` |
+| `mp-developer-standard-android` | JSON `{"changed_files":[...], "commit":"hash"}` (same `resolved_findings` rule on repair) |
 | `mp-tester-<platform>`    | JSON `{"test_files":[...], "screenshot_record_needed": bool, ...}` |
 | `mp-verifier-<platform>`  | JSON `{"pass": bool, "static_checks":{...}, "manual_checklist":[...]}` |
 | `mp-verifier-lite-android` | JSON `{"pass": bool, "static_checks":{...}, "manual_checklist":[...]}` |

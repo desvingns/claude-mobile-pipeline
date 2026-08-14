@@ -53,15 +53,22 @@ post-implementation result before review.
 
 **Step 1.5 — Reviewer** (check layer boundaries) — **deterministic script**:
 ```bash
-bash .claude/scripts/{{PREFIX}}-reviewer-<platform>.sh [each changed_file from developer JSON, space-separated]
+# Add --warn-only when .claude/{{PREFIX}}/config.json sets "reviewerMode": "warn-only".
+bash .claude/scripts/{{PREFIX}}-reviewer-<platform>.sh [--warn-only] [each changed_file from developer JSON, space-separated]
 ```
 
-The script emits exactly one JSON line: `{"pass": bool, "violations": [...]}`. Parse it.
+The script emits exactly one JSON line: `{"pass": bool, "violations": [...], "warnings": [...], "by_check": {...}}`. Parse it.
 
 Fallback: if the script's exit code is non-zero or its output is not valid JSON, spawn the
 `{{PREFIX}}-reviewer-<platform>` agent with the same CHANGED_FILES list and use its output instead.
 
 If `pass=false` → stop immediately, show violations to user. Do NOT proceed to Tester.
+
+`warnings` is never empty-by-accident: it is populated only when the project runs the reviewer with
+`--warn-only` (set `"reviewerMode": "warn-only"` in `.claude/{{PREFIX}}/config.json`), which a
+project uses while adopting checks that have never run against its codebase. Surface warnings to
+the user with their `by_check` counts and continue — they are adoption data, not a gate. A project
+staying in `warn-only` indefinitely has an unenforced reviewer; say so once when you report them.
 
 If the route requires semantic review, run the **Semantic review** stage from
 `contract-risk-routing.md` now. A semantic failure blocks Tester.
@@ -90,11 +97,28 @@ MODIFIED_EXISTING:
 ```
 
 **Step 3 — Runner** (verify everything passes) — **deterministic script**:
+
+Run it in two stages. The scoped stage answers "did this change work"; the full stage is the
+release gate. Using the full run for both makes every repair iteration pay a release-gate price,
+and it turns the runner into the discovery mechanism for problems the reviewers should have found.
+
+**3a — scoped run** (skip when the change touches only one module and that module is `app`):
+```bash
+bash .claude/scripts/{{PREFIX}}-runner-<platform>.sh --scope "<modules touched by CHANGED_FILES>"
+```
+Derive the module list from the changed paths (the segment before `/src/`). It returns
+`"mode":"scoped"` and runs unit tests for those modules only — no detekt, lint, coverage, or
+screenshots. Iterate here while fixing.
+
+**3b — full run** (mandatory, exactly once, after the scoped stage is green):
 ```bash
 bash .claude/scripts/{{PREFIX}}-runner-<platform>.sh [true|false from tester.screenshot_record_needed]
 ```
 
-The script emits exactly one JSON line with shape `{"pass": bool, "tests":..., "detekt|lint":..., "screenshots":..., "errors":[...]}`. Parse it.
+Each stage emits exactly one JSON line with shape `{"pass": bool, "mode":"scoped|full", "tests":..., "detekt|lint":..., "screenshots":..., "errors":[...]}`. Parse it.
+
+Never substitute a scoped run for the full one: a scoped run cannot see a break in a module it did
+not touch, and that is precisely the failure a multi-module change causes.
 
 Fallback: if the script's exit code is non-zero or its output is not valid JSON, spawn the
 `{{PREFIX}}-runner-<platform>` agent with `screenshot_record_needed=<bool>` and use its output instead.

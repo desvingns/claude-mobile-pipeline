@@ -12,6 +12,19 @@
    - **No meaningful overlap found** → proceed silently to step 3. This check must stay cheap (a few targeted greps, not a full re-exploration) and must never block a genuinely-unstarted SPEC.
 3. Move it `backlog/ → active/`, set front-matter `Status: active`, announce which SPEC, then run **Phase 2** using the `=== SPEC === … === END SPEC ===` block read verbatim from the file.
 
+   **Carry the epic's design capsule into the SPEC.** If this SPEC belongs to an epic
+   (`<epic-slug>-NN-<short>.md`), read the `## Design capsule` section of its
+   `<epic-slug>-00-overview.md` (in `backlog/` or `done/`) and append it verbatim to the SPEC block
+   under a `DESIGN_CAPSULE:` line before passing it to any Phase 2 agent. This mode skips Phase 0
+   and Phase 1, so the capsule is the **only** design input the developer gets: state ownership,
+   forbidden dependency edges, lifecycle call sites, ordering, the timeout budget, and the test-clock
+   model. Without it those decisions get made inside the implementation and then found one at a time
+   by semantic review, after the code exists. Costs no extra agent call — the planner already wrote it.
+
+   If the epic has no overview, or the overview has no capsule, say so in one line and continue —
+   an older epic predates the section. Do not spawn an agent to reconstruct it here; that belongs to
+   the escalation path in `contract-risk-routing.md`.
+
    **Presentation SPECs — announce intent, do not re-gate.** When `SPEC.LAYERS` contains
    `presentation`, the announcement carries two extra sentences before Phase 2 starts: the visual
    result you expect to produce, in plain language, and what you are treating as the target of

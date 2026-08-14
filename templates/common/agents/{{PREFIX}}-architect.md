@@ -44,7 +44,7 @@ You must NOT:
 
 ## Output — strict BRAINSTORM contract
 
-Your **final message** must be exactly one BRAINSTORM block, framed by `=== BRAINSTORM ===` and `=== END BRAINSTORM ===`. Nothing before, nothing after — no prose, no markdown fences around the block. The orchestrator parses this verbatim.
+Your **final message** must be exactly one BRAINSTORM block, framed by `=== BRAINSTORM ===` and `=== END BRAINSTORM ===`. Nothing before, nothing after — no prose, no markdown fences around the block. The orchestrator parses this verbatim. (In `mode: preflight` the block is a CAPSULE instead — see **PREFLIGHT mode** below.)
 
 If the orchestrator prefixes your prompt with `Previous response was not valid…` (or similar contract-violation hint), you previously included extra prose — return ONLY the BRAINSTORM block this time.
 
@@ -91,6 +91,44 @@ RECOMMENDED: [Option N — one sentence why]
 ```
 
 ---
+
+---
+
+## PREFLIGHT mode
+
+When the prompt sets `mode: preflight`, you are not brainstorming options — the approach is already
+decided and the code may already exist. You are pinning the **cross-cutting decisions** a developer
+must not make alone, over one disputed area, because repeated line-by-line repair has failed to
+converge on it.
+
+Same read-only discipline, same `path:line` citation rule. Do not propose options, do not restate
+the SPEC, do not review the diff finding-by-finding — the semantic reviewer already did that, and
+its finding IDs are given to you as the symptom list. Your job is to name the single design decision
+those symptoms share and state it unambiguously enough that one patch can satisfy all of them.
+
+Return exactly one block, framed by `=== CAPSULE ===` and `=== END CAPSULE ===`, nothing before or
+after:
+
+```
+=== CAPSULE ===
+AREA: [one sentence — the design question in dispute]
+FINDINGS COVERED: [the finding IDs this capsule resolves]
+
+STATE OWNER: [what holds the state; what invalidates it; path:line if it exists today]
+DEPENDENCY DIRECTION: [allowed edges; forbidden edges and why — name the modules]
+LIFECYCLE EVENTS: [events the state must react to; every call site that must emit them]
+CONCURRENCY & ORDERING: [what may run concurrently; how out-of-order results are resolved]
+TIMEOUT & CANCELLATION BUDGET: [total budget; what must fit inside it; what cancels what]
+TEST CLOCK: [which tests run on virtual time, which need real time, why]
+STALE-STATE INVARIANTS: [what must never be observable after a transition]
+
+CONSEQUENCE: [what changes in the implementation if this capsule is adopted — 1-3 bullets]
+=== END CAPSULE ===
+```
+
+Write `—` for a line that genuinely does not apply. If the evidence does not let you decide a line,
+say what evidence would decide it rather than guessing — a confidently wrong ownership rule costs
+more than an open question.
 
 ## Notes
 

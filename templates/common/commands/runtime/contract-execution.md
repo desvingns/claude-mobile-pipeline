@@ -35,9 +35,9 @@ message — no prose before or after, no markdown fences. The shape depends on t
 
 | Agent          | Payload         |
 |----------------|-----------------|
-| `{{PREFIX}}-architect`            | One BRAINSTORM block (framed by `=== BRAINSTORM ===` markers) |
-| `{{PREFIX}}-developer-<platform>` | JSON `{"changed_files":[...], "commit":"hash"}` |
-| `{{PREFIX}}-developer-standard-android` | JSON `{"changed_files":[...], "commit":"hash"}` |
+| `{{PREFIX}}-architect`            | One BRAINSTORM block (framed by `=== BRAINSTORM ===` markers), or one CAPSULE block in `PREFLIGHT` mode |
+| `{{PREFIX}}-developer-<platform>` | JSON `{"changed_files":[...], "commit":"hash"}`; on a semantic repair pass also `"resolved_findings":[{"id":..., "status":"fixed\|regressed\|superseded", "note":...}]` |
+| `{{PREFIX}}-developer-standard-android` | JSON `{"changed_files":[...], "commit":"hash"}` (same `resolved_findings` rule on repair) |
 | `{{PREFIX}}-tester-<platform>`    | JSON `{"test_files":[...], "screenshot_record_needed": bool, ...}` |
 | `{{PREFIX}}-verifier-<platform>`  | JSON `{"pass": bool, "static_checks":{...}, "manual_checklist":[...]}` |
 | `{{PREFIX}}-verifier-lite-android` | JSON `{"pass": bool, "static_checks":{...}, "manual_checklist":[...]}` |

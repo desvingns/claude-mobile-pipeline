@@ -542,3 +542,59 @@ summary: retro reports now enforce sample-size eligibility, cluster concrete fai
 reason: the retro checklist was advisory and could overinterpret tiny samples, lose recurring failure structure, or change prompts before converting low feedback into reproducible evaluation cases
 affects: claude, codex
 by: {{PREFIX}}-improve
+
+## 2026-08-14T18:40-reviewer-multimodule-layers
+type: fix
+target: templates/android/scripts/{{PREFIX}}-reviewer-android.sh, templates/android/agents/{{PREFIX}}-reviewer-android.md, templates/common/agents/{{PREFIX}}-reviewer-base.md, lib/build-marketplace.sh, tests/test-reviewer-android.sh
+summary: reviewer resolves layers per file instead of one hard-coded source root, checks every source set, adds module dependency-direction/cycle/undeclared-import checks, and gains a --warn-only adoption mode
+reason: gating every check on app/src/main/java/<pkg> made the gate a silent no-op on multi-module projects — it answered pass with zero violations for a change the semantic reviewer then rejected four times over the following hour, so all architectural findings were paid for at LLM prices
+affects: claude, codex
+by: claude
+
+## 2026-08-14T18:41-risk-route-declared-signals
+type: fix
+target: templates/common/scripts/{{PREFIX}}-risk-route.sh, templates/common/agents/{{PREFIX}}-planner.md, templates/common/specs/README.md, templates/common/commands/runtime/contract-risk-routing.md
+summary: router reads a declared Risk-signals line, matches non-English prose, counts each signal once, detects DI/persistence from file content, and escalates security work that also touches state/wiring/persistence
+reason: the keyword lists were English-only and the file globs were lowercase, so a Russian-language SPEC crossing session auth, Hilt wiring, and bounded polling scored 4 and routed to the cheap developer with no independent critic; the one signal it did match came from the substring "Token" inside accessToken()
+affects: claude, codex
+by: claude
+
+## 2026-08-14T18:42-semantic-repair-loop-contract
+type: add
+target: templates/common/commands/runtime/contract-risk-routing.md, templates/common/commands/runtime/contract-execution.md, templates/common/agents/{{PREFIX}}-architect.md
+summary: stable finding IDs, one batched holistic re-audit, a resolved_findings payload, a two-cycle budget with architect PREFLIGHT escalation, and a ratchet that raises the route when the semantic reviewer reports high risk or a blocker
+reason: the contract said only that a semantic failure blocks Tester, so the loop was improvised as fix-the-listed-lines then re-review; that rediscovers one facet of the same design problem per cycle and the reviewer's own repeated risk=high verdict was recorded in telemetry and then discarded
+affects: claude, codex
+by: claude
+
+## 2026-08-14T18:43-test-clock-real-io-marker
+type: fix
+target: templates/android/agents/{{PREFIX}}-tester-android.md, templates/android/scripts/{{PREFIX}}-reviewer-android.sh, templates/android/agents/{{PREFIX}}-reviewer-android.md, templates/common/agents/{{PREFIX}}-reviewer-base.md
+summary: runTest stays the default but real-I/O tests may use runBlocking with a "// {{PREFIX}}-real-io: <reason>" marker; adds the mixed-clock prohibition, an authenticated MockWebServer fixture pattern, and a stable-token rule for source-inspecting contract tests
+reason: the blanket runBlocking ban made the tester wrap real MockWebServer calls in runTest, virtual time cancelled the production timeout before the real response landed, and the resulting six failures took about an hour to diagnose; the fix that made them pass violated the rule and survived only because the check was scoped to app/
+affects: claude, codex
+by: claude
+
+## 2026-08-14T18:44-runner-scoped-mode
+type: add
+target: templates/android/scripts/{{PREFIX}}-runner-android.sh, templates/common/commands/runtime/contract-feature-implementation.md
+summary: runner gains --scope for module-only unit tests with no lint/coverage/screenshots, and the feature contract iterates scoped then runs the full suite exactly once as the final gate
+reason: every repair iteration re-ran the whole multi-module suite plus lint plus coverage to answer whether six tests in one module now pass, paying a release-gate price for a debugging question
+affects: claude, codex
+by: claude
+
+## 2026-08-14T18:45-epic-design-capsule
+type: add
+target: templates/common/agents/{{PREFIX}}-planner.md, templates/common/commands/runtime/feature.md, templates/common/agents/{{PREFIX}}-architect.md
+summary: the planner writes a Design capsule into the epic overview and backlog-consume mode injects it into the SPEC as DESIGN_CAPSULE before any Phase 2 agent; the architect gains a PREFLIGHT capsule mode as the escalation target
+reason: backlog-consume deliberately skips Phase 0 and Phase 1, so no step of the pipeline ever performed a design pass on a planned slice and cross-cutting decisions were re-derived per SPEC by the semantic reviewer after the code existed; the planner already holds the design source, so the capsule costs no extra agent call
+affects: claude, codex
+by: claude
+
+## 2026-08-14T18:46-telemetry-compliance
+type: update
+target: templates/common/commands/runtime/contract-telemetry.md, templates/common/scripts/{{PREFIX}}-retro.sh
+summary: duration_ms and correlation_id are required at every record point, repair_cycle/finding_ids/route_escalated/mode join the metric strings, and the retro reports instrumentation compliance before any cost conclusion
+reason: the schema already accepted duration and token fields but no recorded event carried them, so a multi-hour run could only be explained by inference from step boundaries — which is how review-cycle cost gets misattributed to the build system
+affects: claude, codex
+by: claude

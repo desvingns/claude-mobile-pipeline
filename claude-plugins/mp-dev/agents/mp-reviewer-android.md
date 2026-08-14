@@ -41,7 +41,12 @@ Seven checks (the first four are layer-boundary; checks 5–6 are platform-speci
    - No empty test bodies — every `@Test` / `func test_...` must have at least one assertion.
    - No trivially-true assertions (`assertTrue(true)`, `XCTAssertTrue(true)`, `assertEquals(1, 1)`).
    - No blocking sleeps (`Thread.sleep`, `Task.sleep` outside `XCTestExpectation` machinery, `sleep`).
-   - Kotlin-specific: no `runBlocking { ... }` inside test bodies — use `runTest { ... }` from `kotlinx-coroutines-test`.
+   - Virtual-time default: a test must use the platform's controlled-clock harness (Kotlin
+     `runTest { ... }` from `kotlinx-coroutines-test`) unless it drives real I/O — a real HTTP
+     server, socket, or filesystem — in which case it opts out explicitly with a
+     `// mp-real-io: <reason>` marker on the line above (Kotlin: `runBlocking`). Flag an
+     unmarked opt-out, and flag a test that combines a production timeout/delay with an
+     uncontrolled real callback: neither clock model can make that one deterministic.
 
    Pre-existing test files NOT listed in CHANGED_FILES are out of scope (don't flag legacy debt).
 
@@ -184,10 +189,16 @@ grep -nE "\bThread\.sleep\b" <test_file>
 ```
 Any match is a violation. Coroutine timing in tests must use `runTest { advanceTimeBy(...) }` from `kotlinx-coroutines-test`.
 
-**6e — `runBlocking` in tests:**
+**6e — `runBlocking` in tests without a real-I/O marker:**
 ```bash
 grep -nE "\brunBlocking\s*[\(\{]" <test_file>
 ```
-Any match is a violation — use `runTest { }` from `kotlinx-coroutines-test`. (`runBlocking` defeats the virtual time scheduler that `runTest` provides.)
+A match is a violation **unless** the preceding line carries `// mp-real-io: <reason>`.
+`runBlocking` defeats the virtual-time scheduler `runTest` provides, which is why it is not the
+default — but a test that drives real I/O (MockWebServer/OkHttp, a real socket, the real
+filesystem) must not run under virtual time either: the production timeout expires before the real
+response lands and the test fails for a reason unrelated to the code under test. The marker keeps
+that exemption explicit and reviewable, one call site at a time, instead of a blanket ban that
+tests quietly work around.
 
 Report violations with the same shape as Check 1-5: `<file>:<line> — <category>: <offending line>`.

@@ -127,7 +127,55 @@ same-instance test and claim it covers cold-start durability.
 - No empty `@Test fun foo() {}` with zero assertions.
 - No trivially-true assertions: `assertTrue(true)`, `assertEquals(1, 1)`, etc.
 - No `Thread.sleep(...)` in tests — for coroutines use `runTest { advanceTimeBy(...) }`.
-- No `runBlocking { ... }` in tests — use `runTest { ... }` from `kotlinx-coroutines-test`.
+- `runTest { ... }` from `kotlinx-coroutines-test` is the default. `runBlocking` is allowed **only**
+  for real-I/O integration tests and must carry a `// {{PREFIX}}-real-io: <reason>` comment on the
+  line above each call site — see **Test clock** below.
+
+### Test clock — virtual vs real time
+
+`runTest` runs on a virtual scheduler: `delay`, `withTimeout`, and every other time-based operator
+in the code under test fire instantly. That is exactly what you want when the test controls the
+clock, and exactly what breaks when it does not.
+
+- **Virtual time (`runTest`) — the default.** Everything the test drives is a fake, a suspend
+  function, or a `Flow`. Advance with `advanceTimeBy` / `advanceUntilIdle`, assert with Turbine.
+- **Real time (`runBlocking`, marked) — real I/O only.** MockWebServer/OkHttp, an embedded HTTP or
+  socket server, the real filesystem, a real database file, or anything else that completes on its
+  own thread on real wall-clock time. A real response takes real milliseconds while a virtual
+  `withTimeout` in the production code has already expired, so the test fails for a reason that has
+  nothing to do with the code under test. Mark each such call site:
+
+  ```kotlin
+  @Test
+  fun `refresh maps a 401 to session expiry`() =
+      // {{PREFIX}}-real-io: MockWebServer responds on real time; virtual time cancels the call first
+      runBlocking { … }
+  ```
+
+- **Never mix them.** A production `withTimeout` / `delay` / backoff schedule combined with an
+  uncontrolled real callback in the same test is not a valid setup in either mode. Fix it by
+  injecting the clock or the schedule (a backoff/retry policy extracted as its own class is testable
+  in virtual time with no I/O at all) and keeping the network test to transport concerns only.
+
+- **Authenticated real-I/O repositories.** When the fixture has a fake auth/session provider, the
+  token it returns must change whenever the test switches user or invalidates the session. A fake
+  that keeps handing out the first token turns a legitimate "state must not leak between users"
+  test into a false failure:
+
+  ```kotlin
+  private class FakeSharedAuth : SharedAuth {
+      private var token = "token-user-a"
+      fun switchUser(next: String) { token = "token-$next" }   // token follows the switch
+      override suspend fun accessToken(): String = token
+  }
+  ```
+
+### Source-inspecting contract tests
+
+If a test must assert on production **source text** (a wiring contract, an initialization call),
+assert a small set of stable tokens over normalized whitespace — never an exact multi-line snippet.
+`MobileAds.initialize(context) {}` and the same call with a multi-line callback body are the same
+behaviour; a test that fails on the difference reports a formatting change as a defect.
 
 **Never do:**
 - `@Ignore` or commenting out assertions

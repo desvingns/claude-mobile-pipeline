@@ -58,6 +58,7 @@ Epic: <epic-slug | —>
 Order: <NN of MM | —>
 Status: draft | backlog | active | done   # draft = auto-written by --spec (unreviewed); else mirrors the folder
 Depends-on: <epic-NN | —>
+Risk-signals: <comma-separated | —>
 Date: YYYY-MM-DD
 
 ## SPEC
@@ -72,6 +73,22 @@ Date: YYYY-MM-DD
 - commit: <hash>      (filled when moved to done/)
 - files:  <changed files>
 ```
+
+### `Risk-signals:` — what the slice is about, declared once
+
+A comma-separated subset of: `auth`, `entitlement`, `payment`, `security`, `privacy`,
+`persistence`, `migration`, `di-wiring`, `navigation`, `concurrency`, `server-authoritative`,
+`offline`, `cross-module`, `visual`. Use `—` when the slice carries none of them.
+
+The risk router reads this line and routes model tier, semantic review, and the independent
+critic from it. Without it the router has to infer risk from prose keywords, which is
+language-bound: a SPEC describing session invalidation and bounded polling in a language the
+keyword lists do not cover scored as routine work and went to the cheap route, and the cost came
+back as repeated semantic-review cycles. Whoever plans the slice already knows these facts —
+writing them down is cheaper and more reliable than re-deriving them from wording.
+
+Declaring a signal that is not really present is not free: it buys a stronger model and an extra
+critic pass. Declare what the slice actually touches.
 
 ## Lifecycle
 

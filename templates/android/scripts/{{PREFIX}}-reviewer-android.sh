@@ -81,50 +81,64 @@ under() {
 }
 
 # ----- Layout resolution -------------------------------------------------
-# module_of <path> → gradle module dir ("app", "core/ads", "feature/dashboard"), or "".
-module_of() {
+# These resolvers assign to globals instead of printing. Every `$(...)` call here
+# forks a subshell, and they run several times per file per check: on a real
+# codebase that turned a millisecond-scale gate into a minutes-scale one, which is
+# how a cheap deterministic check stops being run at all.
+
+# resolve_module <path> → R_MOD: gradle module dir ("app", "core/ads"), or "".
+R_MOD=""
+resolve_module() {
   case "$1" in
-    */src/*)                           printf '%s' "${1%%/src/*}" ;;
-    */build.gradle.kts|*/build.gradle) printf '%s' "${1%/*}" ;;
-    *)                                 printf '' ;;
+    */src/*)                           R_MOD="${1%%/src/*}" ;;
+    */build.gradle.kts|*/build.gradle) R_MOD="${1%/*}" ;;
+    *)                                 R_MOD="" ;;
   esac
 }
 
-# source_set_of <path> → main | test | androidTest | ""
-source_set_of() {
+# resolve_source_set <path> → R_SET: main | test | androidTest | ""
+R_SET=""
+resolve_source_set() {
   case "$1" in
-    */src/androidTest/*) printf 'androidTest' ;;
-    */src/test/*)        printf 'test' ;;
-    */src/main/*)        printf 'main' ;;
-    *)                   printf '' ;;
+    */src/androidTest/*) R_SET='androidTest' ;;
+    */src/test/*)        R_SET='test' ;;
+    */src/main/*)        R_SET='main' ;;
+    *)                   R_SET='' ;;
   esac
 }
 
-# layer_of <path> → domain | data | presentation | ""
+# resolve_layer <path> → R_LAYER: domain | data | presentation | ""
 # A path component named exactly domain/data/presentation/ui wins; otherwise a
 # `feature/*` module is presentation by convention. Anything else stays unknown
 # and is skipped rather than guessed at — a wrong layer guess produces false
 # blockers, which is worse than no check.
-layer_of() {
+R_LAYER=""
+resolve_layer() {
   case "/$1/" in
-    */domain/*)              printf 'domain';       return ;;
-    */data/*)                printf 'data';         return ;;
-    */presentation/*|*/ui/*) printf 'presentation'; return ;;
+    */domain/*)              R_LAYER='domain';       return ;;
+    */data/*)                R_LAYER='data';         return ;;
+    */presentation/*|*/ui/*) R_LAYER='presentation'; return ;;
   esac
-  case "$(module_of "$1")" in
-    feature/*|*/feature/*) printf 'presentation'; return ;;
+  resolve_module "$1"
+  case "$R_MOD" in
+    feature/*|*/feature/*) R_LAYER='presentation'; return ;;
   esac
-  printf ''
+  R_LAYER=''
 }
 
-# module_rank <module> → 1 domain, 2 other library, 3 feature, 4 app.
+# resolve_rank <module> → R_RANK: 0 foundation, 1 domain, 2 other library, 3 feature, 4 app.
 # A dependency edge from a lower rank to a higher rank inverts the layering.
-module_rank() {
+# Foundation modules (common/util/model/kernel/shared) sit *below* domain: a domain
+# module depending on shared primitives is the normal arrangement, and ranking it a
+# violation would flag every well-layered project on its first run.
+R_RANK=2
+resolve_rank() {
   case "$1" in
-    app)                   printf '4' ;;
-    feature/*|*/feature/*) printf '3' ;;
-    */domain|domain)       printf '1' ;;
-    *)                     printf '2' ;;
+    app)                                                    R_RANK=4 ;;
+    feature/*|*/feature/*)                                  R_RANK=3 ;;
+    */domain|domain)                                        R_RANK=1 ;;
+    */common|common|*/util|*/utils|*/model|*/kernel|*/shared) R_RANK=0 ;;
+    *)                                                      R_RANK=2 ;;
   esac
 }
 
@@ -134,23 +148,39 @@ gradle_file_of() {
   else printf ''; fi
 }
 
-# direct_deps <module> → newline-separated dependency module dirs (":core:ads" → "core/ads").
-direct_deps() {
+# One index of every gradle module in the repo, built once. Import resolution then
+# becomes pure-bash membership testing instead of two stat calls per import line.
+MODULE_INDEX=" "
+while IFS= read -r gf; do
+  [ -n "$gf" ] || continue
+  d="${gf%/*}"
+  case "$MODULE_INDEX" in *" $d "*) continue ;; esac
+  MODULE_INDEX="$MODULE_INDEX$d "
+done < <(find . -maxdepth 4 \( -name .git -o -name build -o -name node_modules \) -prune -o \
+              \( -name 'build.gradle.kts' -o -name 'build.gradle' \) -print 2>/dev/null | sed 's#^\./##')
+
+# gradle_deps <module> <all|api> → newline-separated dependency module dirs.
+# Test-only configurations are excluded. `testImplementation(project(":core:testing"))`
+# next to that module's own dependency on this one is the standard fakes arrangement,
+# not a production cycle, and reporting it as one teaches the reader to ignore the check.
+gradle_deps() {
   local gf; gf="$(gradle_file_of "$1")"
   [ -n "$gf" ] || return 0
-  grep -oE "project\((\"|')[:][A-Za-z0-9_.:-]+(\"|')\)" "$gf" 2>/dev/null |
-    sed -e 's/^project(.://' -e 's/.)$//' -e 's#:#/#g' |
-    sort -u
+  awk -v want="$2" '
+    match($0, /[A-Za-z]+[( ]*project\(["'"'"'][:][A-Za-z0-9_.:-]+["'"'"']\)/) {
+      decl = substr($0, RSTART, RLENGTH)
+      cfg = decl; sub(/[( ].*$/, "", cfg)
+      if (cfg ~ /^(test|androidTest|debugAndroidTest|kapt|ksp|lintChecks|detektPlugins)/) next
+      if (want == "api" && cfg != "api") next
+      path = decl; sub(/^[^:]*:/, "", path); sub(/["'"'"']\)$/, "", path)
+      gsub(/:/, "/", path)
+      if (path != "") print path
+    }
+  ' "$gf" 2>/dev/null | sort -u
 }
 
-# api_deps <module> → deps re-exported via api(project(...)); callers may import them transitively.
-api_deps() {
-  local gf; gf="$(gradle_file_of "$1")"
-  [ -n "$gf" ] || return 0
-  grep -oE "api\(project\((\"|')[:][A-Za-z0-9_.:-]+(\"|')\)\)" "$gf" 2>/dev/null |
-    sed -e 's/^api(project(.://' -e 's/.))$//' -e 's#:#/#g' |
-    sort -u
-}
+direct_deps() { gradle_deps "$1" all; }
+api_deps()    { gradle_deps "$1" api; }
 
 # effective_deps <module> → direct deps plus one level of api() re-exports.
 effective_deps() {
@@ -162,44 +192,54 @@ effective_deps() {
   done < <(direct_deps "$m")
 }
 
-# module_for_import <import-fqn> → owning module dir, or "".
-# Maps <package>.core.ads.data.Foo → core/ads by taking the longest leading
-# segment prefix that is an actual gradle module directory. Single-module
-# projects resolve nothing here, which correctly makes the module checks inert.
-MODULE_IMPORT_CACHE=""
-module_for_import() {
-  local fqn="$1" rest key esc cached seg path best i
-  case "$fqn" in
-    "$PACKAGE".*) rest="${fqn#"$PACKAGE".}" ;;
-    *) printf ''; return ;;
+# resolve_effective_deps <module> → R_EFF: " a/b c/d " for pure-bash membership tests.
+# Cached: Check 7c asks the same question once per changed file, and each miss costs
+# a gradle-file grep per dependency.
+EFF_CACHE=""
+R_EFF=" "
+resolve_effective_deps() {
+  local m="$1" line
+  case "$EFF_CACHE" in
+    *"|$m="*)
+      line="${EFF_CACHE#*"|$m="}"
+      R_EFF=" ${line%%|*} "
+      return ;;
   esac
-  key="$rest"
-  esc=$(printf '%s' "$key" | sed 's/[].[^$*\\]/\\&/g')
-  cached=$(printf '%s' "$MODULE_IMPORT_CACHE" | grep -m1 -- "^${esc} " 2>/dev/null)
-  if [ -n "$cached" ]; then printf '%s' "${cached#* }"; return; fi
+  R_EFF=" $(effective_deps "$m" | sort -u | tr '\n' ' ') "
+  EFF_CACHE="$EFF_CACHE|$m=$(printf '%s' "$R_EFF" | sed -e 's/^ //' -e 's/ $//')|"
+}
 
-  path=""; best=""; i=0
+# resolve_import_module <import-fqn> → R_IMP: owning module dir, or "".
+# Maps <package>.core.ads.data.Foo → core/ads by taking the longest leading segment
+# prefix present in MODULE_INDEX. Single-module projects resolve nothing here,
+# which correctly makes the module checks inert.
+R_IMP=""
+resolve_import_module() {
+  local rest seg path i
+  R_IMP=""
+  case "$1" in
+    "$PACKAGE".*) rest="${1#"$PACKAGE".}" ;;
+    *) return ;;
+  esac
+  path=""; i=0
   while [ "$i" -lt 3 ]; do
     seg="${rest%%.*}"
     [ "$seg" = "$rest" ] && break
     if [ -n "$path" ]; then path="$path/$seg"; else path="$seg"; fi
-    if [ -d "$path" ] && [ -n "$(gradle_file_of "$path")" ]; then best="$path"; fi
+    case "$MODULE_INDEX" in *" $path "*) R_IMP="$path" ;; esac
     rest="${rest#*.}"
     i=$((i + 1))
   done
-  MODULE_IMPORT_CACHE="${MODULE_IMPORT_CACHE}${key} ${best}
-"
-  printf '%s' "$best"
 }
 
 # ----- Check 1: no Android imports in domain --------------------------
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
-  [ "$(layer_of "$f")" = domain ] || continue
-  [ "$(source_set_of "$f")" = main ] || continue
-  while IFS=: read -r line _; do
+  resolve_layer "$f"; [ "$R_LAYER" = domain ] || continue
+  resolve_source_set "$f"; [ "$R_SET" = main ] || continue
+  while IFS=: read -r line content; do
     [ -z "$line" ] && continue
-    offending=$(sed -n "${line}p" "$f" | sed 's/^[[:space:]]*//')
+    offending="${content#"${content%%[![:space:]]*}"}"
     add_v "domain-purity" "$f:$line — illegal Android import in domain: $offending"
   done < <(grep -nE "^import android\." "$f" || true)
 done
@@ -209,17 +249,17 @@ done
 # ones expose it as a separate gradle module whose own layer resolves to `data`.
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
-  [ "$(layer_of "$f")" = presentation ] || continue
-  [ "$(source_set_of "$f")" = main ] || continue
+  resolve_layer "$f"; [ "$R_LAYER" = presentation ] || continue
+  resolve_source_set "$f"; [ "$R_SET" = main ] || continue
   while IFS=: read -r line content; do
     [ -z "$line" ] && continue
     fqn=$(printf '%s' "$content" | sed -e 's/^[[:space:]]*import[[:space:]]*//' -e 's/[[:space:]].*$//' -e 's/\r$//')
     case "$fqn" in
       "$PACKAGE".data.*) ;;
       *)
-        dep_module="$(module_for_import "$fqn")"
+        resolve_import_module "$fqn"; dep_module="$R_IMP"
         [ -n "$dep_module" ] || continue
-        [ "$(layer_of "$dep_module/src/main")" = data ] || continue
+        resolve_layer "$dep_module/src/main"; [ "$R_LAYER" = data ] || continue
         ;;
     esac
     offending=$(printf '%s' "$content" | sed 's/^[[:space:]]*//')
@@ -230,7 +270,7 @@ done
 # ----- Check 3: ViewModels must not inject Repository -----------------
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
-  [ "$(layer_of "$f")" = presentation ] || continue
+  resolve_layer "$f"; [ "$R_LAYER" = presentation ] || continue
   case "${f##*/}" in
     *ViewModel.kt) ;;
     *) continue ;;
@@ -248,7 +288,7 @@ done
 # ----- Check 4: Screen composables expose <Name>Content() -------------
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
-  [ "$(layer_of "$f")" = presentation ] || continue
+  resolve_layer "$f"; [ "$R_LAYER" = presentation ] || continue
   case "${f##*/}" in
     *Screen.kt) ;;
     *) continue ;;
@@ -267,8 +307,8 @@ done
 # excluded — it only became reachable once `ui/` started resolving as presentation.
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
-  [ "$(layer_of "$f")" = presentation ] || continue
-  [ "$(source_set_of "$f")" = main ] || continue
+  resolve_layer "$f"; [ "$R_LAYER" = presentation ] || continue
+  resolve_source_set "$f"; [ "$R_SET" = main ] || continue
   case "$f" in
     */theme/*) continue ;;
   esac
@@ -314,79 +354,69 @@ done
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
   case "$f" in *.kt) ;; *) continue ;; esac
-  case "$(source_set_of "$f")" in
+  resolve_source_set "$f"
+  case "$R_SET" in
     test|androidTest) ;;
     *) continue ;;
   esac
 
-  # 6a — @Ignore without TODO/issue ref on same or previous line
-  while IFS=: read -r line _; do
-    [ -z "$line" ] && continue
-    same=$(sed -n "${line}p" "$f")
-    prev_no=$((line - 1))
-    prev=""
-    [ "$prev_no" -ge 1 ] && prev=$(sed -n "${prev_no}p" "$f")
-    if ! printf '%s\n%s' "$same" "$prev" | grep -qE "TODO|#[0-9]+"; then
-      offending=$(printf '%s' "$same" | sed 's/^[[:space:]]*//')
-      add_v "test-hygiene" "$f:$line — @Ignore without TODO(#issue) reference: $offending"
-    fi
-  done < <(grep -nE "^[[:space:]]*@Ignore([[:space:]]|\()" "$f" || true)
-
-  # 6b — @Test with no assertions anywhere in its body. The body ends at the next
-  # JUnit annotation (or 200 lines out, whichever comes first): a fixed 20-line
-  # window reported healthy long tests — with setup blocks or a dispatcher/latch
-  # preamble — as assertion-free, and that noise is what makes a gate get ignored.
-  while IFS=: read -r line _; do
-    [ -z "$line" ] && continue
-    next=$(awk -v s="$line" 'NR>s && /^[[:space:]]*@(Test|Before|After|BeforeClass|AfterClass|Ignore)\b/ {print NR; exit}' "$f")
-    end=$((line + 200))
-    if [ -n "$next" ] && [ "$next" -le "$end" ]; then end=$((next - 1)); fi
-    body=$(sed -n "${line},${end}p" "$f")
-    if ! printf '%s' "$body" | grep -qE "assert|expect|verify|should|Truth\."; then
-      offending=$(sed -n "${line}p" "$f" | sed 's/^[[:space:]]*//')
-      add_v "test-hygiene" "$f:$line — @Test with no assertions in body: $offending"
-    fi
-  done < <(grep -nE "^[[:space:]]*@Test[[:space:]]*$" "$f" || true)
-
-  # 6c — Trivially-true assertions
-  while IFS=: read -r line content; do
-    [ -z "$line" ] && continue
-    case "$content" in
-      *//*) continue ;;
+  # One pass per file. Each sub-check used to cost its own grep, plus a `sed -n`
+  # per match to re-read a line grep had already produced; on a test file with many
+  # matches that is hundreds of process spawns for work awk does in a single read.
+  while IFS='|' read -r id line offending; do
+    [ -n "$id" ] || continue
+    case "$id" in
+      ignore)   add_v "test-hygiene" "$f:$line — @Ignore without TODO(#issue) reference: $offending" ;;
+      noassert) add_v "test-hygiene" "$f:$line — @Test with no assertions in body: $offending" ;;
+      trivial)  add_v "test-hygiene" "$f:$line — trivially-true assertion: $offending" ;;
+      sleep)    add_v "test-hygiene" "$f:$line — Thread.sleep in test (use runTest + advanceTimeBy): $offending" ;;
+      clock)    add_v "test-clock" "$f:$line — runBlocking without a '// {{PREFIX}}-real-io: <reason>' marker (use runTest, or justify real time): $offending" ;;
     esac
-    offending=$(printf '%s' "$content" | sed 's/^[[:space:]]*//')
-    add_v "test-hygiene" "$f:$line — trivially-true assertion: $offending"
-  done < <(grep -nE "assertTrue\([[:space:]]*true[[:space:]]*\)|assertFalse\([[:space:]]*false[[:space:]]*\)" "$f" || true)
+  done < <(awk '
+    { L[NR] = $0 }
+    function trim(s) { sub(/^[[:space:]]+/, "", s); return s }
+    function emit(id, n) { printf "%s|%d|%s\n", id, n, trim(L[n]) }
+    END {
+      for (i = 1; i <= NR; i++) {
+        line = L[i]
+        prev = (i > 1) ? L[i-1] : ""
 
-  # 6d — Thread.sleep
-  while IFS=: read -r line content; do
-    [ -z "$line" ] && continue
-    case "$content" in
-      *//*) continue ;;
-    esac
-    offending=$(printf '%s' "$content" | sed 's/^[[:space:]]*//')
-    add_v "test-hygiene" "$f:$line — Thread.sleep in test (use runTest + advanceTimeBy): $offending"
-  done < <(grep -nE "\bThread\.sleep\b" "$f" || true)
+        # 6a — a disabled test with no issue reference on this or the previous line
+        if (line ~ /^[[:space:]]*@Ignore([[:space:]]|\()/ && (line prev) !~ /TODO|#[0-9]+/) emit("ignore", i)
 
-  # 6e — runBlocking without the real-I/O marker.
-  # `runTest` drives virtual time: a production withTimeout/delay fires immediately
-  # while a real MockWebServer/OkHttp/filesystem callback is still in flight, and the
-  # test then fails for a reason unrelated to the code under test. A test that drives
-  # real I/O must opt out of virtual time explicitly, one marker per call site, so the
-  # exemption stays reviewable instead of becoming a blanket escape hatch.
-  while IFS=: read -r line content; do
-    [ -z "$line" ] && continue
-    case "$content" in
-      *//*) continue ;;
-      *import*runBlocking*) continue ;;
-    esac
-    prev_no=$((line - 1))
-    prev=""
-    [ "$prev_no" -ge 1 ] && prev=$(sed -n "${prev_no}p" "$f")
-    printf '%s' "$prev" | grep -qE "//[[:space:]]*{{PREFIX}}-real-io:[[:space:]]*[^[:space:]]" && continue
-    offending=$(printf '%s' "$content" | sed 's/^[[:space:]]*//')
-    add_v "test-clock" "$f:$line — runBlocking without a '// {{PREFIX}}-real-io: <reason>' marker (use runTest, or justify real time): $offending"
-  done < <(grep -nE "\brunBlocking[[:space:]]*[\({]" "$f" || true)
+        # 6b — @Test whose body asserts nothing. The body ends at the next JUnit
+        # annotation (or 200 lines out): a fixed short window reported healthy long
+        # tests — ones with a setup or latch preamble — as assertion-free, and that
+        # noise is what makes a gate get ignored.
+        if (line ~ /^[[:space:]]*@Test[[:space:]]*$/) {
+          stop = i + 200; if (stop > NR) stop = NR
+          for (j = i + 1; j <= stop; j++)
+            if (L[j] ~ /^[[:space:]]*@(Test|Before|After|BeforeClass|AfterClass|Ignore)([[:space:]]|\(|$)/) { stop = j - 1; break }
+          asserted = 0
+          for (j = i; j <= stop; j++)
+            if (L[j] ~ /assert|expect|verify|should|Truth\./) { asserted = 1; break }
+          if (!asserted) emit("noassert", i)
+        }
+
+        if (line ~ /\/\//) continue
+
+        # 6c — assertions that cannot fail
+        if (line ~ /assertTrue\([[:space:]]*true[[:space:]]*\)|assertFalse\([[:space:]]*false[[:space:]]*\)/) emit("trivial", i)
+
+        # 6d — a blocking sleep instead of a controlled clock
+        if (line ~ /Thread\.sleep/) emit("sleep", i)
+
+        # 6e — runBlocking without the real-I/O marker. runTest drives virtual time:
+        # a production withTimeout/delay fires immediately while a real
+        # MockWebServer/OkHttp/filesystem callback is still in flight, and the test
+        # then fails for a reason unrelated to the code under test. Opting out must
+        # stay explicit, one call site at a time, so it remains reviewable instead of
+        # becoming a blanket escape hatch.
+        if (line ~ /runBlocking[[:space:]]*[({]/ && line !~ /^[[:space:]]*import[[:space:]]/ &&
+            prev !~ /\/\/[[:space:]]*{{PREFIX}}-real-io:[[:space:]]*[^[:space:]]/) emit("clock", i)
+      }
+    }
+  ' "$f")
 done
 
 # ----- Check 7: module dependency direction ---------------------------
@@ -397,7 +427,7 @@ done
 SEEN_MODULES=""
 for f in "${EXISTING[@]:-}"; do
   [ -n "$f" ] || continue
-  m="$(module_of "$f")"
+  resolve_module "$f"; m="$R_MOD"
   [ -n "$m" ] || continue
   [ -n "$(gradle_file_of "$m")" ] || continue
 
@@ -405,11 +435,11 @@ for f in "${EXISTING[@]:-}"; do
     *" $m "*) ;;
     *)
       SEEN_MODULES="$SEEN_MODULES $m"
-      self_rank="$(module_rank "$m")"
+      resolve_rank "$m"; self_rank="$R_RANK"
       while IFS= read -r d; do
         [ -n "$d" ] || continue
         [ "$d" = "$m" ] && continue
-        dep_rank="$(module_rank "$d")"
+        resolve_rank "$d"; dep_rank="$R_RANK"
         if [ "$dep_rank" -gt "$self_rank" ]; then
           add_v "module-direction" "$(gradle_file_of "$m") — :${m//\//:} (layer rank $self_rank) depends on higher layer :${d//\//:} (rank $dep_rank)"
         fi
@@ -423,13 +453,13 @@ for f in "${EXISTING[@]:-}"; do
   # 7c — import from a module this one does not declare. This is the shape of a DI
   # wiring break: it reads fine in review, then fails only at aggregate application
   # build time, or at runtime as a missing binding.
-  [ "$(source_set_of "$f")" = main ] || continue
+  resolve_source_set "$f"; [ "$R_SET" = main ] || continue
   case "$f" in *.kt) ;; *) continue ;; esac
-  eff=" $(effective_deps "$m" | sort -u | tr '\n' ' ') "
+  resolve_effective_deps "$m"; eff="$R_EFF"
   while IFS=: read -r line content; do
     [ -z "$line" ] && continue
     fqn=$(printf '%s' "$content" | sed -e 's/^[[:space:]]*import[[:space:]]*//' -e 's/[[:space:]].*$//' -e 's/\r$//')
-    dep_module="$(module_for_import "$fqn")"
+    resolve_import_module "$fqn"; dep_module="$R_IMP"
     [ -n "$dep_module" ] || continue
     [ "$dep_module" = "$m" ] && continue
     case "$eff" in

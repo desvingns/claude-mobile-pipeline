@@ -13,6 +13,16 @@ Set `TASK` to `feature` or `bugfix`. Resolve an existing `SPEC_FILE`:
   `.ai/local/{{PREFIX}}-current-spec.md` (operational, git-ignored context; never application
   source) and use that path.
 
+**Declare the risk signals before routing.** The router reads a `Risk-signals:` line from the
+SPEC file (vocabulary in `.claude/specs/README.md`). A backlog SPEC carries it from the planner.
+For a phase-generated or inline SPEC you are the one persisting the file, so write the line
+yourself from what the slice actually touches — session/auth lifecycle, entitlement, persistence
+or migration, the DI graph, navigation, concurrency or a cancellation budget, cross-module data
+flow, server-authoritative state, visual/device work — or `—` when none apply. Without it the
+router falls back to prose keywords, which depend on the language the SPEC happens to be written
+in; that fallback routed a security-sensitive cross-layer slice to the cheap developer with no
+independent critic, and it was paid back as four semantic-review cycles.
+
 Run through Bash:
 
 ```bash
@@ -85,3 +95,48 @@ additional semantic-reviewer pass with a fresh evidence packet containing only t
 paths/hashes, scoped diff, and deterministic test/review artifacts—never the first semantic
 reviewer's conclusion. A critic failure blocks the chain.
 Validate each structured response under `contract-execution.md`; no semantic pass may auto-fix code.
+
+### Escalation ratchet (the reviewer's own risk read counts)
+
+The semantic reviewer returns its own `risk`. When it reports `risk:"high"`, or returns any
+`severity:"blocker"`, the route ratchets up for the **remainder of this SPEC** and never back down:
+set `DEVELOPER_AGENT` to the powerful developer, `independent_critic=true`, and `VERIFIER_AGENT`
+to the full verifier. Say so in one line when you surface the findings, and append
+`route_escalated=1` to the `semantic-reviewer` telemetry metric.
+
+Rationale: the router scores a SPEC before any code exists, so it can be wrong. The reviewer has
+read the actual diff. A run where the reviewer said `risk=high` four times while the cheap
+developer kept patching is a route that stayed wrong for an hour because nothing fed the reviewer's
+verdict back into it.
+
+### Semantic repair loop
+
+A semantic failure blocks Tester/Runner. Repair it as follows — the loop is a contract, not an
+improvisation, because "fix the findings, re-review, repeat" rediscovers one facet of the same
+design problem per cycle and pays a full agent round-trip for each.
+
+1. **Give every finding a stable ID** of the form `<RULE>-<NNN>` — `AUTH-STATE-001`,
+   `DI-CYCLE-001`, `TEST-CLOCK-001`, `POLL-BUDGET-001` — derived from the finding's `rule` field.
+   IDs are assigned once and reused across every later cycle of this SPEC.
+2. **Dispatch ALL findings in ONE batch** to the same Developer agent when it is still healthy
+   (a fresh agent only after a hang, an invalid architecture, or contaminated context). Never send
+   one cluster, wait, and send the next.
+3. **Require a holistic re-audit, not a line fix.** The repair prompt must say, verbatim in intent:
+   *re-audit the whole implementation against the entire SPEC and the semantic checklist — not only
+   the listed lines. Resolve dependency direction, lifecycle ownership, stale state, concurrency
+   and publication order, cancellation, and timeout budget in one patch.* Findings are symptoms of
+   a design decision; repairing them one at a time re-derives the same decision repeatedly.
+4. **Require a regression test per finding** before re-review, and require the Developer to return
+   `resolved_findings`: `[{"id":"AUTH-STATE-001","status":"fixed|regressed|superseded","note":"one line"}]`
+   alongside its normal `{"changed_files":[...],"commit":"hash"}` payload. An ID that reappears in a
+   later cycle with `status:"fixed"` is a regression and must be surfaced as such.
+5. **Re-verify narrowly before re-review**: compile the affected modules and run the scoped tests
+   (`{{PREFIX}}-runner-<platform>.sh --scope …`). Do not spend a full runner here — the full run is
+   the final gate, not the discovery mechanism.
+6. **Budget: two repair cycles.** If a third semantic pass still returns blockers, stop patching.
+   Surface the accumulated finding IDs, spawn `{{PREFIX}}-architect` in `PREFLIGHT` mode for a
+   design capsule over the disputed area, and put the capsule in front of the user as a gate before
+   any further code. Continuing to patch past this point is how a slice turns into a multi-hour run.
+
+Carry the ID ledger (`id`, `rule`, `status`, `cycle`) into the Verifier and the independent critic
+so a finding that was silently dropped between cycles is visible instead of assumed handled.
