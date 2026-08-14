@@ -218,7 +218,7 @@ _mpcfg() { grep -oE "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$CONFIG" 2>/dev
 PACKAGE="$(_mpcfg package)"
 SRC_ROOT="app/src/main/java/$(_mpcfg packagePath)"
 if [ -z "$PACKAGE" ] || [ -z "$SRC_ROOT" ]; then
-  printf '%s\n' '{"pass":false,"violations":["missing or invalid .claude/mp/config.json (need package + packagePath)"]}'
+  printf '%s\n' '{"pass":false,"violations":["missing or invalid .claude/mp/config.json (need package + packagePath)"],"warnings":[],"by_check":{}}'
   exit 0
 fi
 EOF
