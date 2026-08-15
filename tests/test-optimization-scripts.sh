@@ -69,6 +69,58 @@ out=$(bash "$risk" --task feature --spec "$work/persist.md" \
   --changed core/database/Migration3.kt)
 printf '%s' "$out" | grep -q '"score":8'
 
+# ---- SPEC size gate ------------------------------------------------------
+# The gate measures the DECLARED acceptance cross-product. It deliberately does
+# not derive size from CHANGED_HINT: on the run this exists for, CHANGED_HINT
+# named two modules while the work crossed seven plus a server grant, so every
+# estimate built on it ranked the epic's worst SPEC among its smallest.
+complexity=$(find "$repo/templates/common/scripts" -maxdepth 1 -name '*spec-complexity.sh' -print | head -1)
+
+cat > "$work/big.md" <<'BIGSPEC'
+# CloudSync gating
+Acceptance-matrix: role=owner,participant; state=free,trial,active,grace,expired; transport=rpc,realtime; error=auth,network,server
+BIGSPEC
+out=$(bash "$complexity" --spec "$work/big.md")
+printf '%s' "$out" | grep -q '"verdict":"split_recommended"'
+printf '%s' "$out" | grep -q '"cells":60'
+printf '%s' "$out" | grep -q '"matrix_declared":true'
+
+cat > "$work/mid.md" <<'MIDSPEC'
+# LocalOnly transition
+Acceptance-matrix: role=owner,participant; reason=expired,killswitch,ad-window; snapshot=ok,failed
+MIDSPEC
+out=$(bash "$complexity" --spec "$work/mid.md")
+printf '%s' "$out" | grep -q '"verdict":"warn"'
+printf '%s' "$out" | grep -q '"cells":12'
+
+printf '# Slice\nAcceptance-matrix: state=active,expired\n' > "$work/small.md"
+out=$(bash "$complexity" --spec "$work/small.md")
+printf '%s' "$out" | grep -q '"verdict":"ok"'
+printf '%s' "$out" | grep -q '"cells":2'
+
+# `—` is a real declaration: one behaviour for everyone, not a missing field.
+printf '# Slice\nAcceptance-matrix: —\n' > "$work/none.md"
+out=$(bash "$complexity" --spec "$work/none.md")
+printf '%s' "$out" | grep -q '"verdict":"undeclared"'
+
+# An absent line must never be guessed into a verdict from prose.
+printf '# Slice\nWHAT: migration, auth, realtime, navigation everywhere.\n' > "$work/undecl.md"
+out=$(bash "$complexity" --spec "$work/undecl.md")
+printf '%s' "$out" | grep -q '"verdict":"undeclared"'
+printf '%s' "$out" | grep -q '"matrix_declared":false'
+printf '%s' "$out" | grep -q '"cells":0'
+
+# The budget is configurable, and the frozen matrix is the full cross-product.
+out=$(bash "$complexity" --spec "$work/mid.md" --cell-budget 8)
+printf '%s' "$out" | grep -q '"verdict":"split_recommended"'
+bash "$complexity" --spec "$work/mid.md" --freeze "$work/matrix.md" >/dev/null
+[ "$(grep -c '^| [0-9]' "$work/matrix.md")" -eq 12 ]
+grep -q 'role=owner · reason=killswitch · snapshot=failed' "$work/matrix.md"
+
+out=$(bash "$complexity" --spec "$work/missing-file.md")
+printf '%s' "$out" | grep -q '"ok":false'
+[ "$(bash "$complexity" --spec "$work/mid.md" | wc -l | tr -d '[:space:]')" -eq 1 ]
+
 out=$(bash "$spec_scripts/spec-cache.sh" fingerprint "$work/cache" intake "$work/low.md")
 fingerprint=$(printf '%s' "$out" | sed -nE 's/.*"fingerprint":"([a-f0-9]+)".*/\1/p')
 [ -n "$fingerprint" ]

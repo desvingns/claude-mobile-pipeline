@@ -59,6 +59,7 @@ Order: <NN of MM | —>
 Status: draft | backlog | active | done   # draft = auto-written by --spec (unreviewed); else mirrors the folder
 Depends-on: <epic-NN | —>
 Risk-signals: <comma-separated | —>
+Acceptance-matrix: <dim=v1,v2; dim=v1,v2,v3 | —>
 Date: YYYY-MM-DD
 
 ## SPEC
@@ -89,6 +90,30 @@ writing them down is cheaper and more reliable than re-deriving them from wordin
 
 Declaring a signal that is not really present is not free: it buys a stronger model and an extra
 critic pass. Declare what the slice actually touches.
+
+### `Acceptance-matrix:` — how many behaviours this slice carries
+
+The dimensions whose values change the expected outcome, with their values:
+
+```
+Acceptance-matrix: role=owner,participant; state=active,grace,expired; transport=rpc,realtime
+```
+
+Semicolons separate dimensions, commas separate that dimension's values. `—` means the slice has
+one behaviour for everyone in every state. Typical dimensions: actor/role, entity or entitlement
+state, transport or data source, error class.
+
+The product of the value counts is the slice's acceptance surface, and
+`{{PREFIX}}-spec-complexity.sh` refuses to start implementation when it exceeds the budget
+(default 24 cells, `acceptanceCellBudget` in `.claude/mp/config.json`). The same expansion is
+frozen to a file that semantic review reports coverage against, so review converges against a
+fixed list instead of resampling a different facet each pass.
+
+Why it is declared rather than inferred: a SPEC whose real surface was 2 roles × 5 states × 2
+transports × 3 error classes — 60 cells — passed as one slice and took eight review cycles. Nothing
+derivable from its prose or its `CHANGED_HINT` showed the size; `CHANGED_HINT` named two modules
+while the work crossed seven plus a server grant. Whoever plans the slice knows these dimensions,
+and writing them down is both the honest size estimate and the review's termination condition.
 
 ## Lifecycle
 

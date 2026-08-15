@@ -35,7 +35,29 @@ Record points (one call each, regardless of verdict):
 | `runner`   | after each runner outcome, scoped and full | from `pass`; `mode=<scoped\|full>;tests=<...>;lint=<ok\|fail>`; `--retry 1` when the auto-fix retry ran |
 | `verifier` | after the verifier step resolves | from `pass`; `checks=<N failed or ok>` |
 | `fit`      | after `--fit` Phase 3 parses the `=== FIT ===` block | `pass` when no unexplained divergences, else `partial`; `fit=<overall_score>` |
+| `tester` | after the Tester step resolves | from payload validity; `tests_added=<N>` |
+| `architect` | after a `PREFLIGHT` capsule resolves | `pass`; `verdict=<patch_allowed\|design_decision_required>;gate_auto=<0\|1>` |
+| `phase` | once per workflow phase boundary (see below) | `pass`; `phase=<name>;human_wait_ms=<N>` |
 | `feedback` | the post-ship feedback question (see **Post-ship** below) | `score=<1-5>` |
+
+**Every agent you spawn gets an event — including the ones that passed.** A step that ran and is
+not in this table still gets one under its own `--agent` name. This is the difference between a log
+and a sample: on a measured run the recorded events accounted for 18% of the SPEC's wall clock, and
+the tester, verifier, architect and critic emitted nothing at all, so the retro could only conclude
+that the time went somewhere. A pass with no event is indistinguishable from a step that never ran.
+
+### Phase events and human wait
+
+Record an `--agent phase` event at each workflow phase boundary (`spec`, `implement`, `review`,
+`repair`, `test`, `verify`, `ship`) with `--duration-ms` covering the whole phase. When the phase
+included a gate the user had to answer, add `human_wait_ms=<N>` measured from the moment the
+question was surfaced to the moment the answer arrived.
+
+Keeping that number separate is the point. Agent time, orchestration time, and time spent waiting
+for a sleeping human are three different problems with three different fixes, and a single
+`duration_ms` blurs them into one number that invites the wrong conclusion — a six-hour SPEC whose
+largest single item was a 4 h 28 min approval wait looks like slow tooling until the wait is
+broken out.
 
 Prefer provider/harness-reported input, output, cached, reasoning-token, USD-cost, and duration
 values. If provider token counts are unavailable, a `characters / 4` fallback is allowed only

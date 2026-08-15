@@ -188,6 +188,32 @@ long_test="core/ads/src/test/kotlin/$pkg_path/core/ads/LongTest.kt"
 out=$(bash "$script" "$long_test")
 printf '%s' "$out" | grep -q '"pass":true'
 
+# ----- Check 8: a touched use case needs a dedicated test -----------------
+# The full verifier rejects this at the end of a run; catching it here costs a
+# filename lookup instead of a repair cycle plus a full re-verify.
+uc="core/domain/src/main/kotlin/$pkg_path/core/domain/usecase/ObserveBalanceUseCase.kt"
+mkdir -p "$(dirname "$uc")"
+cat > "$uc" <<EOF
+package $pkg.core.domain.usecase
+
+class ObserveBalanceUseCase
+EOF
+out=$(bash "$script" "$uc")
+printf '%s' "$out" | grep -q 'has no dedicated ObserveBalanceUseCaseTest.kt'
+printf '%s' "$out" | grep -q '"usecase-test":1'
+
+mkdir -p "core/domain/src/test/kotlin/$pkg_path/core/domain/usecase"
+printf 'package %s.core.domain.usecase\n\nclass ObserveBalanceUseCaseTest\n' "$pkg" \
+  > "core/domain/src/test/kotlin/$pkg_path/core/domain/usecase/ObserveBalanceUseCaseTest.kt"
+out=$(bash "$script" "$uc")
+printf '%s' "$out" | grep -q '"pass":true'
+
+# An interface-only use case declaration has nothing of its own to test.
+uci="core/domain/src/main/kotlin/$pkg_path/core/domain/usecase/DeleteGoalUseCase.kt"
+printf 'package %s.core.domain.usecase\n\nfun interface DeleteGoalUseCase\n' "$pkg" > "$uci"
+out=$(bash "$script" "$uci")
+printf '%s' "$out" | grep -q '"pass":true'
+
 # ----- --warn-only downgrades findings without failing --------------------
 out=$(bash "$script" --warn-only "$undeclared")
 printf '%s' "$out" | grep -q '"pass":true'

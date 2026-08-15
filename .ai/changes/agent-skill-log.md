@@ -598,3 +598,51 @@ summary: duration_ms and correlation_id are required at every record point, repa
 reason: the schema already accepted duration and token fields but no recorded event carried them, so a multi-hour run could only be explained by inference from step boundaries — which is how review-cycle cost gets misattributed to the build system
 affects: claude, codex
 by: claude
+
+## 2026-08-15T21:40-conditional-capsule-gate
+type: update
+target: templates/common/commands/runtime/contract-risk-routing.md, templates/common/agents/{{PREFIX}}-architect.md, templates/common/commands/{{PREFIX}}.md
+summary: the PREFLIGHT capsule now carries VERDICT (PATCH ALLOWED | DESIGN DECISION REQUIRED); only the latter stops for a human, the former continues automatically with gate_auto=1, and a --unattended modifier lets every advisory gate take its recommended default
+reason: the unconditional gate introduced in 1.14.0 consumed 4h28m of a 6h50m SPEC (65% of its wall clock) waiting for approval of a capsule whose own verdict was that no user decision was needed; the budget must stop runaway patching without manufacturing overnight waits
+affects: claude, codex
+by: claude
+
+## 2026-08-15T21:41-spec-size-gate
+type: add
+target: templates/common/scripts/{{PREFIX}}-spec-complexity.sh, templates/common/agents/{{PREFIX}}-planner.md, templates/common/specs/README.md, templates/common/commands/runtime/contract-risk-routing.md, docs/MARKETPLACE.md
+summary: SPECs declare Acceptance-matrix (role/state/transport/error dimensions); a deterministic gate multiplies them and recommends a split above acceptanceCellBudget (default 24) before the first developer call
+reason: a slice whose real surface was 2 roles x 5 states x 2 transports x 3 error classes ran eight semantic-review cycles that never repeated a finding ID, because no review loop converges a space nobody bounded; size is measured from the declaration rather than CHANGED_HINT, which named two modules on that run while the work crossed seven plus a server grant
+affects: claude, codex
+by: claude
+
+## 2026-08-15T21:42-frozen-obligation-matrix
+type: update
+target: templates/common/commands/runtime/contract-risk-routing.md, templates/common/scripts/{{PREFIX}}-spec-complexity.sh
+summary: the size gate freezes the expanded cross-product to a file and every semantic pass must return coverage {total, covered, uncovered[]} against it instead of re-decomposing the problem per pass
+reason: successive passes produced STATE-001..008, SECURITY-001..004 and TESTS-001..011 without repeating an ID, which reads like progress and is a random walk; against a fixed list "still failing" becomes the answerable question of which cells are uncovered
+affects: claude, codex
+by: claude
+
+## 2026-08-15T21:43-runner-task-resolution
+type: fix
+target: templates/android/scripts/{{PREFIX}}-runner-android.sh, tests/test-runner-android.sh
+summary: the scoped runner resolves the test task per module (Android -> testDebugUnitTest, pure JVM -> test), scans each module's own result dir, and reports error_kind=task_not_found separately from a compile failure
+reason: regression introduced with --scope in 1.14.0 — every scoped module was addressed as testDebugUnitTest, so a scope containing a pure JVM module failed gradle configuration and was reported as a compile/config failure, sending a developer to chase an error that did not exist
+affects: claude, codex
+by: claude
+
+## 2026-08-15T21:44-usecase-test-check
+type: add
+target: templates/android/scripts/{{PREFIX}}-reviewer-android.sh, templates/android/agents/{{PREFIX}}-tester-android.md, templates/common/commands/runtime/contract-feature-implementation.md, tests/test-reviewer-android.sh
+summary: reviewer Check 8 rejects a touched use case with no dedicated <Name>Test.kt, and the tester gained a self-check covering real-io markers, fakes, and test naming before it returns
+reason: the full verifier applied the same rule at the very end of a run, after implementation, review cycles and a full green suite had been paid for; and two review->repair cycles were spent purely adding // real-io markers to tests that were already correct
+affects: claude, codex
+by: claude
+
+## 2026-08-15T21:45-phase-telemetry-and-liveness
+type: update
+target: templates/common/commands/runtime/contract-telemetry.md, templates/common/scripts/{{PREFIX}}-retro.sh, templates/common/commands/runtime/contract-risk-routing.md
+summary: every spawned agent records an event, phase events carry human_wait_ms, the retro separates agent time from human wait and flags workflows with no phase accounting, and a semantic pass silent for 10 minutes is interrupted once and retried with a reduced evidence packet
+reason: recorded events covered 18% of one SPEC's wall clock while the tester, verifier, architect and critic emitted nothing, so the retro could only conclude the time went somewhere; agent time, orchestration and waiting for a sleeping human are three problems that one duration_ms blurs into a wrong diagnosis
+affects: claude, codex
+by: claude

@@ -59,3 +59,10 @@ a workflow from memory.
 Unknown or conflicting primary selectors are an error: show this table and ask the user to choose
 one. Preserve every human gate, structured payload, retry limit, write boundary, and report shape
 defined by the loaded files.
+
+**`--unattended`** is a modifier, not a mode: it may accompany any selector above and declares that
+nobody is watching. Advisory gates then proceed on their recommended default and are reported in a
+"decisions taken while unattended" summary at the end (see `contract-risk-routing.md`). Gates that
+are destructive or push work outward — SPEC approval, `git push`, anything that leaves the machine —
+still stop and wait. Use it for overnight or background runs, where an advisory gate is not a
+safety feature but a several-hour stall.

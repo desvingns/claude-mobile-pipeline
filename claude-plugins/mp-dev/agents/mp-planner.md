@@ -40,6 +40,25 @@ orchestrator writes them behind a `y/d/n` gate (same read-only discipline as `mp
   graph, or a polling/cancellation budget before any code exists. Leaving it off forces the router
   to guess from prose keywords, which routed a security-sensitive cross-layer slice to the cheap
   developer with no independent critic — paid back later as repeated semantic-review cycles.
+- **Declare `Acceptance-matrix:`** in every SPEC's front matter — the dimensions the slice's
+  behaviour crosses, with their values, semicolon-separated:
+
+  ```
+  Acceptance-matrix: role=owner,participant; state=active,grace,expired; transport=rpc,realtime
+  ```
+
+  Write `—` only when the slice genuinely has one behaviour for everyone in every state. Use the
+  dimensions that actually vary the expected outcome — typically actor/role, entity or entitlement
+  state, transport or data source, and error class — not a restatement of the UI.
+
+  **This is the slicing check, and it applies to you first.** Multiply the value counts before you
+  commit to a slice: `2 × 3 × 2` is twelve behaviours one SPEC can carry, `2 × 5 × 2 × 3` is sixty
+  and is an epic. The deterministic gate refuses to start implementation above the budget, so a SPEC
+  you oversize here comes straight back to you — and a run that got past this before the gate
+  existed took eight semantic-review cycles that each returned findings that were all new, because
+  no review loop can converge a space nobody bounded. The same declaration is frozen into the
+  obligation matrix that semantic review reports coverage against, so it is also what makes review
+  terminate.
 - **Idempotent on `sync`**: key by SPEC filename `<epic>-NN-<short>.md`; preserve files already in `active/`/`done/`; only add/append in `backlog/`; never rewrite a shipped SPEC — flag drift in `warnings[]`.
 
 ## Design capsule (required in the `-00-overview.md`)

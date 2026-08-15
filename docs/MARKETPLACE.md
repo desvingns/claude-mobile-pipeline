@@ -90,7 +90,8 @@ The plugin agents are project-agnostic; project facts are read at runtime from
   "uiLang": "en",
   "coverageTargetPct": 0,
   "docsAgent": "inert",
-  "reviewerMode": "enforce"
+  "reviewerMode": "enforce",
+  "acceptanceCellBudget": 24
 }
 ```
 
@@ -99,6 +100,7 @@ The plugin agents are project-agnostic; project facts are read at runtime from
 | `coverageTargetPct` | line-coverage floor for the full runner; `0` disables it (use when the project has its own per-module kover/jacoco gate) |
 | `docsAgent` | `"inert"` skips the docs step entirely instead of paying an agent spawn to write nothing |
 | `reviewerMode` | `"enforce"` (default) or `"warn-only"`. In `warn-only` the orchestrator passes `--warn-only` to the deterministic reviewer, so findings arrive under `warnings` with `by_check` counts and do not block. Intended for adopting checks a codebase has never run against — sizing the backlog first, then switching to `enforce`. |
+| `acceptanceCellBudget` | maximum acceptance cells (the product of the SPEC's `Acceptance-matrix:` dimensions) before `{{PREFIX}}-spec-complexity.sh` recommends splitting the SPEC. Default `24`. Raise it only if your slices genuinely converge at a larger surface — the number is a review-cycle budget, not a style preference. |
 
 `sourceRoot` describes the single-module layout. The deterministic reviewer resolves layers from
 the path (`domain/`, `data/`, `presentation/`, `ui/` components, or a `feature/*` module), so a

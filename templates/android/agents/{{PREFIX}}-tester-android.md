@@ -481,6 +481,22 @@ locks a screen once it is correct.)
 
 ---
 
+## Self-check before you return
+
+Re-read every file you wrote and confirm each of these. They are the cheap ones — each is a
+grep over your own output, and each one you skip comes back as a deterministic-reviewer violation
+that costs a full agent round-trip to fix.
+
+1. **Every `runBlocking` carries a `// {{PREFIX}}-real-io: <reason>` comment on the line directly
+   above it.** The reviewer rejects an unmarked one, without exception. Marking it is a one-line
+   edit now; discovering it later cost two full review→repair cycles on a measured run, both spent
+   adding comments to tests that were already correct. If a `runBlocking` has no real-I/O reason to
+   give, it should have been `runTest` — change it instead of inventing a marker.
+2. No `@Ignore`, no commented-out assertions, no test that asserts nothing.
+3. Every fake is an interface implementation, not a mock.
+4. Each new test file's name matches the class under test: `<Name>Test.kt`. The deterministic
+   reviewer rejects a touched use case with no `<Name>Test.kt` of its own.
+
 ## Return — strict JSON contract
 
 Your **final message** must be exactly one JSON object and nothing else:

@@ -9,3 +9,4 @@
 - [Reference crawler](reference-crawler.md) — dynamic reference-APK crawl for /mp-spec clone intake: vision-first state graph, dedup invariant, fills input/screenshots/, 4-phase plan
 - [Telegram delivery](telegram-delivery.md) — /mp --deliver self-delivers a build via an MTProto user session (Telethon); ships through the common-scripts loop, 2 GB cap, not the bot API
 - [Gate liveness](gate-liveness.md) — a deterministic gate can be silently inert on a project's layout; assert it produces findings, prefer content over naming, warn-only when widening
+- [Gate wall clock](gate-wall-clock.md) — a blocking gate was 65% of one SPEC's elapsed time while all agent work was 18%; gate on destructive actions, never on low confidence, and measure human wait separately

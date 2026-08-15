@@ -70,8 +70,13 @@ project uses while adopting checks that have never run against its codebase. Sur
 the user with their `by_check` counts and continue — they are adoption data, not a gate. A project
 staying in `warn-only` indefinitely has an unenforced reviewer; say so once when you report them.
 
+The `usecase-test` check reports a touched use case with no `<Name>Test.kt` of its own. That is the
+same rule the full verifier applies at the very end of the run; it is enforced here so the fix costs
+one Tester pass instead of a repair plus a full re-verify after the suite has already run green.
+
 If the route requires semantic review, run the **Semantic review** stage from
-`contract-risk-routing.md` now. A semantic failure blocks Tester.
+`contract-risk-routing.md` now — including the frozen acceptance matrix and the `coverage` field.
+A semantic failure blocks Tester.
 
 Record telemetry for this step either way (see **Run telemetry**): `--agent reviewer`.
 

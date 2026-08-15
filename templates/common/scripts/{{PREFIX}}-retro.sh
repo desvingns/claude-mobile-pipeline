@@ -136,7 +136,16 @@ out="$retro_dir/retro-$date_tag.md"
       if (match($0, /"tokens_reasoning":[0-9]+/)) tr += substr($0, RSTART+19, RLENGTH-19)+0;
       if (match($0, /"cost_usd":[0-9.]+/)) cost += substr($0, RSTART+11, RLENGTH-11)+0;
       if (match($0, /"duration_ms":[0-9]+/)) { dur += substr($0, RSTART+14, RLENGTH-14)+0; dn++ }
-      if (match($0, /"correlation_id":"[^"]+"/)) corr++;
+      if (match($0, /"correlation_id":"[^"]+"/)) {
+        corr++;
+        cid = substr($0, RSTART+18, RLENGTH-19);
+        seen_corr[cid] = 1;
+        if ($0 ~ /"agent":"phase"/) phased[cid] = 1;
+      }
+      # Human wait rides in the metric string, not a top-level field, so the
+      # record script stays a stable one-line contract while the orchestrator
+      # learns to report new things.
+      if (match($0, /human_wait_ms=[0-9]+/)) { hw += substr($0, RSTART+14, RLENGTH-14)+0; hwn++ }
     }
     END {
       if (n>0) printf "Usage events: %d · input: %d · output: %d · cached input: %d · reasoning output: %d\n", n, ti, to, tc, tr;
@@ -153,6 +162,17 @@ out="$retro_dir/retro-$date_tag.md"
         printf "Instrumentation: %d events · missing duration_ms: %d (%.0f%%) · missing correlation_id: %d (%.0f%%)\n", \
                events, no_dur, 100*no_dur/events, no_corr, 100*no_corr/events;
         if (no_dur*2 > events) print "**Under-instrumented**: over half the events carry no duration. Fix recording before drawing cost conclusions from this window.";
+      }
+      # Agent time and human wait are separate problems with separate fixes.
+      # Reporting one number for both is how a run whose largest single item was
+      # an approval wait gets diagnosed as slow tooling.
+      if (hwn>0) printf "Human wait: %d ms across %d gate(s) / %.0f%% of recorded agent time\n", hw, hwn, (dur>0 ? 100*hw/dur : 0);
+      else       print "Human wait: not reported — no event carries human_wait_ms";
+      nc=0; np=0;
+      for (c in seen_corr) { nc++; if (phased[c]) np++ }
+      if (nc>0) {
+        printf "Phase accounting: %d of %d workflow(s) recorded phase events\n", np, nc;
+        if (np < nc) print "**Wall-clock unattributable** for the rest: without phase events the gap between recorded steps cannot be split into agent, orchestration, and waiting time.";
       }
     }
   '

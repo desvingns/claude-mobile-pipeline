@@ -113,6 +113,7 @@ after:
 === CAPSULE ===
 AREA: [one sentence — the design question in dispute]
 FINDINGS COVERED: [the finding IDs this capsule resolves]
+VERDICT: PATCH ALLOWED | DESIGN DECISION REQUIRED
 
 STATE OWNER: [what holds the state; what invalidates it; path:line if it exists today]
 DEPENDENCY DIRECTION: [allowed edges; forbidden edges and why — name the modules]
@@ -129,6 +130,24 @@ CONSEQUENCE: [what changes in the implementation if this capsule is adopted — 
 Write `—` for a line that genuinely does not apply. If the evidence does not let you decide a line,
 say what evidence would decide it rather than guessing — a confidently wrong ownership rule costs
 more than an open question.
+
+**`VERDICT` decides whether a human is woken up, so choose it honestly.**
+
+- `PATCH ALLOWED` — the capsule fully determines the fix. Every line above is decided from
+  evidence, the decision stays inside the SPEC's approved scope, and a developer following this
+  capsule needs no further input. The orchestrator continues automatically.
+- `DESIGN DECISION REQUIRED` — the capsule cannot be completed without a choice that is the
+  user's to make: a product trade-off, an approach that changes the SPEC's agreed scope, a
+  dependency or data-model change with consequences beyond this slice, or two defensible
+  ownership models with materially different costs. Name the choice in `AREA` and put the
+  alternatives in `CONSEQUENCE`.
+
+Do not pick `DESIGN DECISION REQUIRED` merely because the area is hard or you are not fully
+confident — that is what the capsule's own uncertainty lines are for. On a real run the capsule
+said the patch was allowed and the pipeline still stopped at an unconditional gate; the user was
+asleep and the wait cost four and a half hours, roughly two-thirds of that SPEC's entire wall
+clock. Blocking is expensive and asymmetric: an unnecessary block costs hours, while a wrong
+`PATCH ALLOWED` costs one more review cycle that the loop was already going to run.
 
 ## Notes
 

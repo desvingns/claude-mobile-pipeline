@@ -9,7 +9,12 @@
 #                             pass 0 to disable the coverage gate entirely
 #   --scope:                  run unit tests for the listed gradle modules only
 #                             (":core:ads" or "core/ads" both accepted) and skip
-#                             detekt, lint, coverage, and screenshots
+#                             detekt, lint, coverage, and screenshots. The test
+#                             task is resolved per module (Android →
+#                             testDebugUnitTest, pure JVM → test); a module that
+#                             cannot be located, or a task that does not exist,
+#                             is reported as "error_kind":"task_not_found" and
+#                             never as a code failure.
 #
 # Scoped mode exists for the inner loop. A repair cycle that re-runs the whole
 # multi-module suite plus lint plus coverage to learn whether six tests in one
@@ -123,26 +128,74 @@ errors_json() {
   printf '%s' "$out"
 }
 
+# ----- Scope resolution: the test task is per module, not per project -----
+# An Android application/library module answers to testDebugUnitTest; a plain
+# JVM/Kotlin module only to test. Addressing a pure JVM module as
+# `:core:domain:testDebugUnitTest` makes Gradle fail *configuration*, which this
+# script then reported as "compile/config failure" — a healthy module looked
+# broken and cost a diagnosis cycle before anyone noticed the task never existed.
+# A module we cannot locate at all is reported as task_not_found, which is a
+# different fact from "the tests failed" and must not be conflated with it.
+module_test_task() {
+  local dir="$1" bf
+  for bf in "$dir/build.gradle.kts" "$dir/build.gradle"; do
+    [ -f "$bf" ] || continue
+    if grep -qE '^[[:space:]]*android[[:space:]]*\{|com\.android\.(application|library)|plugins\.android\.(application|library)' "$bf" 2>/dev/null; then
+      printf 'testDebugUnitTest'; return 0
+    fi
+    # A convention plugin can apply the Android plugin without the consumer ever
+    # opening an `android {}` block; the manifest is the reliable second signal.
+    if [ -f "$dir/src/main/AndroidManifest.xml" ]; then
+      printf 'testDebugUnitTest'; return 0
+    fi
+    printf 'test'; return 0
+  done
+  return 1
+}
+
+SCOPE_PAIRS=""
+SCOPE_LABEL=""
+if [ "$MODE" = scoped ]; then
+  MISSING=""
+  for mod in $SCOPE_MODULES; do
+    mod="${mod#:}"
+    dir="${mod//://}"
+    path=":${dir//\//:}"
+    if [ -n "${MP_TEST_TASK:-}" ]; then
+      task="$MP_TEST_TASK"
+    elif ! task="$(module_test_task "$dir")"; then
+      MISSING="$MISSING $path"
+      continue
+    fi
+    SCOPE_PAIRS="$SCOPE_PAIRS $dir=$task"
+    [ -n "$SCOPE_LABEL" ] && SCOPE_LABEL="$SCOPE_LABEL "
+    SCOPE_LABEL="$SCOPE_LABEL$path"
+  done
+  SCOPE_PAIRS="${SCOPE_PAIRS# }"
+  if [ -n "$MISSING" ]; then
+    printf '{"pass":false,"mode":"scoped","scope":"%s","tests":"unknown","detekt":"skipped","lint":"skipped","coverage":"skipped","screenshots":"skipped","error_kind":"task_not_found","errors":["no gradle build file for module(s):%s"]}\n' \
+      "$(json_escape "$SCOPE_LABEL")" "$(json_escape "$MISSING")"
+    exit 0
+  fi
+fi
+
 # ----- Step 1: unit tests -----------------------------------------------
 # Default to the multi-module task: a `:app`-only run leaves a compile break in
 # other modules invisible and reports green. Override with MP_TEST_TASK.
 TEST_LOG="$LOG_DIR/tests.log"
 TEST_TASK="${MP_TEST_TASK:-testDebugUnitTest}"
-SCOPE_LABEL=""
 if [ "$MODE" = scoped ]; then
   TEST_TASK=""
-  for mod in $SCOPE_MODULES; do
-    mod="${mod#:}"
-    mod=":${mod//\//:}"
-    TEST_TASK="$TEST_TASK ${mod}:testDebugUnitTest"
-    [ -n "$SCOPE_LABEL" ] && SCOPE_LABEL="$SCOPE_LABEL "
-    SCOPE_LABEL="$SCOPE_LABEL$mod"
+  for pair in $SCOPE_PAIRS; do
+    dir="${pair%%=*}"; task="${pair##*=}"
+    TEST_TASK="$TEST_TASK :${dir//\//:}:$task"
   done
   TEST_TASK="${TEST_TASK# }"
 fi
 # Results dir is named after the bare task, so a debug run never counts stale
 # testReleaseUnitTest XML (different variant, different numbers) as its own.
-# With several scoped tasks they all share one variant, so the last one names it.
+# In scoped mode each module carries its own task, so the dir is resolved per
+# module below instead of from a single shared task name.
 RESULT_DIR="${TEST_TASK##* }"
 RESULT_DIR="${RESULT_DIR##*:}"
 # shellcheck disable=SC2086
@@ -172,11 +225,10 @@ done < <(
     # behind by an earlier full run and report the whole suite's numbers as this
     # run's result — a scoped gate that silently claims full coverage is worse
     # than no scoped gate at all.
-    for mod in $SCOPE_MODULES; do
-      mod="${mod#:}"
-      dir="${mod//://}"
-      [ -d "$dir/build/test-results/$RESULT_DIR" ] || continue
-      find "$dir/build/test-results/$RESULT_DIR" -name 'TEST-*.xml' -print 2>/dev/null
+    for pair in $SCOPE_PAIRS; do
+      dir="${pair%%=*}"; task="${pair##*=}"
+      [ -d "$dir/build/test-results/$task" ] || continue
+      find "$dir/build/test-results/$task" -name 'TEST-*.xml' -print 2>/dev/null
     done
   else
     find . \( -name .git -o -name .claude -o -name archive -o -name node_modules \) -prune -o \
@@ -184,10 +236,22 @@ done < <(
   fi
 )
 
+# Classify the failure BEFORE any bookkeeping sets FAILED, so the carve-out below
+# still applies in the case it exists for: a task that does not exist produces no
+# test suites at all, which is also what "the build died early" looks like.
+ERROR_KIND=""
+if [ "$TEST_EXIT" -ne 0 ] &&
+   grep -qE "Task '[^']*' not found|Cannot locate tasks that match" "$TEST_LOG" 2>/dev/null; then
+  ERROR_KIND="task_not_found"
+fi
+
 PASSED=$((TOTAL - FAILED - SKIPPED))
 if [ "$SUITES" -eq 0 ]; then
   if [ "$TEST_EXIT" -eq 0 ]; then
     TESTS_RESULT="0 tests (no test sources matched $TEST_TASK)"
+  elif [ "$ERROR_KIND" = task_not_found ]; then
+    TESTS_RESULT="no tests ran — the requested task does not exist for this module"
+    FAILED=1
   else
     TESTS_RESULT="build failed before any test ran"
     FAILED=1
@@ -198,8 +262,15 @@ fi
 
 # Non-zero Gradle exit with a clean XML set means compile/config breakage, not an
 # assertion failure — the usual way a broken module hides behind green test reports.
+# "Task not found" (classified above) is carved out of that bucket: it means we
+# addressed a module with a task it does not have, which says nothing about the
+# code and must not be handed to a developer as a compile error to chase.
 if [ "$TEST_EXIT" -ne 0 ] && [ "$FAILED" -eq 0 ]; then
-  TESTS_RESULT="$TESTS_RESULT (gradle exit=$TEST_EXIT — compile/config failure)"
+  if [ "$ERROR_KIND" = task_not_found ]; then
+    TESTS_RESULT="$TESTS_RESULT (gradle exit=$TEST_EXIT — requested task does not exist for this module)"
+  else
+    TESTS_RESULT="$TESTS_RESULT (gradle exit=$TEST_EXIT — compile/config failure)"
+  fi
   FAILED=1
 fi
 
@@ -213,8 +284,10 @@ fi
 # Static analysis and coverage are release-gate concerns, not inner-loop ones.
 if [ "$MODE" = scoped ]; then
   if [ "$FAILED" -gt 0 ]; then
-    printf '{"pass":false,"mode":"scoped","scope":"%s","tests":"%s","detekt":"skipped","lint":"skipped","coverage":"skipped","screenshots":"skipped","errors":%s}\n' \
-      "$(json_escape "$SCOPE_LABEL")" "$(json_escape "$TESTS_RESULT")" "$(errors_json)"
+    KIND_FIELD=""
+    [ -n "$ERROR_KIND" ] && KIND_FIELD="\"error_kind\":\"$ERROR_KIND\","
+    printf '{"pass":false,"mode":"scoped","scope":"%s","tests":"%s","detekt":"skipped","lint":"skipped","coverage":"skipped","screenshots":"skipped",%s"errors":%s}\n' \
+      "$(json_escape "$SCOPE_LABEL")" "$(json_escape "$TESTS_RESULT")" "$KIND_FIELD" "$(errors_json)"
   else
     printf '{"pass":true,"mode":"scoped","scope":"%s","tests":"%s","detekt":"skipped","lint":"skipped","coverage":"skipped","screenshots":"skipped"}\n' \
       "$(json_escape "$SCOPE_LABEL")" "$(json_escape "$TESTS_RESULT")"

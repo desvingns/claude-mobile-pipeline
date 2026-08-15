@@ -6,6 +6,61 @@ This repo uses [Semantic Versioning](https://semver.org/) — see `README.md` �
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-15
+
+1.14.0 made the gates live; this release makes the loop around them terminate. A measured
+six-hour SPEC spent 18% of its wall clock in recorded agent time and 65% waiting at a gate,
+while semantic review produced findings that were all new across eight cycles.
+
+### Fixed
+- **Scoped runner addressed every module with `testDebugUnitTest`** — a regression shipped
+  with `--scope` in 1.14.0. A scope containing a pure JVM module failed Gradle
+  *configuration*, which the runner reported as a compile/config failure, so a healthy
+  module looked broken and a developer was sent to find an error that was never there. The
+  test task is now resolved per module (Android → `testDebugUnitTest`, JVM → `test`, both
+  overridable via `MP_TEST_TASK`), each module's own result directory is scanned, and a
+  missing module or absent task is reported as `"error_kind":"task_not_found"` — a different
+  fact from "the tests failed" and no longer conflated with it.
+- **The 1.14.0 capsule escalation always stopped for a human.** It now routes on the
+  capsule's new `VERDICT`: `PATCH ALLOWED` continues automatically and records `gate_auto=1`;
+  only `DESIGN DECISION REQUIRED` waits. On the measured run the gate cost 4 h 28 min waiting
+  to approve a capsule that itself said no user decision was needed.
+
+### Added
+- **`{{PREFIX}}-spec-complexity.sh` — a SPEC size gate that runs before the first Developer
+  call.** SPECs declare `Acceptance-matrix: role=owner,participant; state=active,grace,expired;
+  transport=rpc,realtime`; the gate multiplies the dimensions and recommends a split above
+  `acceptanceCellBudget` (default 24). Size is taken from the declaration, never from
+  `CHANGED_HINT`, which on the run this exists for named two modules while the work crossed
+  seven plus a server grant.
+- **A frozen obligation matrix.** The gate expands the cross-product to a file, and every
+  semantic pass must return `coverage` (`total`, `covered`, `uncovered[]`) against it instead
+  of re-decomposing the problem. Successive passes had produced `STATE-001..008`,
+  `SECURITY-001..004` and `TESTS-001..011` without repeating an ID — progress-shaped, but a
+  random walk over an unbounded space.
+- **Reviewer Check 8 (`usecase-test`)**: a touched use case with no dedicated `<Name>Test.kt`
+  is rejected in milliseconds, instead of by the full verifier at the end of the run after
+  the tests and reviews have already been paid for.
+- **`--unattended`**, a modifier for any mode: advisory gates take their recommended default
+  and are reported in a closing summary. Destructive or outward-facing gates — SPEC approval,
+  `git push` — still stop and wait.
+- **Agent liveness policy**: a semantic pass silent for 10 minutes is interrupted once and
+  retried with a reduced evidence packet, then degrades to `partial` with `stalled=1` rather
+  than blocking the chain.
+- **Tester self-check** before returning: every `runBlocking` carries its
+  `// {{PREFIX}}-real-io:` marker, no `@Ignore`, fakes not mocks, test names match. Two
+  review→repair cycles on the measured run were spent adding markers to tests that were
+  already correct.
+
+### Changed
+- **Telemetry covers phases, not just agents.** Every spawned agent records an event —
+  including `tester` and `architect`, which recorded nothing before — and a `phase` event
+  carries `human_wait_ms`. The retro now reports human wait separately from agent time and
+  flags workflows with no phase accounting as wall-clock-unattributable. Recorded events had
+  accounted for 18% of one SPEC's elapsed time.
+- The two-cycle repair budget **does not reset** after a capsule; it becomes one final cycle,
+  then a handoff.
+
 ## [1.14.0] - 2026-08-14
 
 Closing the gaps a post-run analysis of one cross-layer SPEC exposed: four gates were

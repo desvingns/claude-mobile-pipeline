@@ -478,6 +478,41 @@ for f in "${EXISTING[@]:-}"; do
   done < <(grep -nE "^import ${PACKAGE//./\\.}\." "$f" || true)
 done
 
+# ----- Check 8: a touched use case needs a dedicated test -------------
+# The full verifier already rejects a new use case that has no test of its own,
+# but it runs at the very end: on a measured run that rejection arrived after the
+# implementation, the review cycles and a full test suite had all completed, and
+# it cost another repair pass plus a full re-verify. The same fact is decidable
+# here from a filename, in milliseconds, before any of that is spent.
+UC_FILES=()
+UC_NAMES=()
+for f in "${EXISTING[@]:-}"; do
+  [ -n "$f" ] || continue
+  case "$f" in *.kt) ;; *) continue ;; esac
+  resolve_source_set "$f"; [ "$R_SET" = main ] || continue
+  base="${f##*/}"; base="${base%.kt}"
+  is_uc=0
+  case "$f" in */usecase/*|*/usecases/*) is_uc=1 ;; esac
+  case "$base" in *UseCase) is_uc=1 ;; esac
+  [ "$is_uc" -eq 1 ] || continue
+  # An interface-only or typealias file has nothing of its own to test.
+  grep -qE '^[[:space:]]*(class|object)[[:space:]]' "$f" 2>/dev/null || continue
+  UC_FILES+=("$f")
+  UC_NAMES+=("$base")
+done
+
+if [ "${#UC_FILES[@]}" -gt 0 ]; then
+  TEST_INDEX=$(find . \( -name .git -o -name build -o -name .claude -o -name archive -o -name node_modules \) -prune -o \
+                 -path '*/src/test*' -name '*Test.kt' -print 2>/dev/null | sed 's#.*/##')
+  i=0
+  while [ "$i" -lt "${#UC_FILES[@]}" ]; do
+    f="${UC_FILES[$i]}"; base="${UC_NAMES[$i]}"
+    i=$((i + 1))
+    printf '%s\n' "$TEST_INDEX" | grep -qx "${base}Test.kt" && continue
+    add_v "usecase-test" "$f — use case $base has no dedicated ${base}Test.kt; the full verifier rejects this at the end of the run, after the tests and reviews have already been paid for"
+  done
+fi
+
 # ----- Emit JSON --------------------------------------------------------
 list_json() {
   local i=0 out='[' e
