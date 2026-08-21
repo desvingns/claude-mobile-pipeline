@@ -1,82 +1,57 @@
 # Handoff
 
-Last session: Claude · 2026-08-15 · released **1.15.0** on `main`.
+Last session: Codex · 2026-08-21 · prepared **1.16.0** on `main`.
 
 ## DONE
 
-Analysed the `plus-subscription-gating-05` postmortem plus raw MyMoney telemetry
-(`selfimprove/runs/2026-08.jsonl`, correlations `…-05` and `…-06`) and shipped the fixes.
-
-The 1.14.0 gates worked — `route_escalated=1`, `mode=scoped`, `repair_cycle=N`, `finding_ids`,
-`rule=test-clock` and the capsule escalation all appear in the recorded events. They did not
-reduce wall clock, because the deterministic gates they sped up totalled 123 seconds across the
-whole SPEC. Measured breakdown of the `…-05` window (20:59:56Z → 03:50:32Z, 410 min):
-
-| item | time | share |
-|---|---|---|
-| human gate after the capsule (22:43 → 03:26) | 268 min | 65% |
-| semantic review, 4 recorded passes | 42 min | 10% |
-| developer repairs, 2 recorded | 27 min | 7% |
-| deterministic gates + runners | 6 min | 1.5% |
-| unrecorded gaps inside the window | 68 min | 16% |
-
-Sum of all `duration_ms` = 74.7 min = **18%** of the window. The commit window runs to 06:42Z,
-so a further **2 h 52 min** and eight commits sit outside telemetry entirely. `tester`,
-`verifier`, `architect` and `critic` emitted no events at all. On `…-06`, three documented
-semantic passes produced zero `semantic-reviewer` events.
-
-Shipped (all in canonical `templates/`, both adapters rebuilt):
-
-- **P0-A** capsule `VERDICT` + conditional gate + `--unattended`. The 1.14.0 gate was mine and
-  was the single largest cost item on the run.
-- **P0-B** `{{PREFIX}}-spec-complexity.sh` + `Acceptance-matrix:` declaration + planner rule.
-- **P0-C** frozen obligation matrix; semantic passes return `coverage`.
-- **P0-D** per-module gradle task resolution + `error_kind:task_not_found` (my `--scope`
-  regression from 1.14.0).
-- **P1-A** phase telemetry, `human_wait_ms`, retro splits agent time from human wait.
-- **P1-B** reviewer Check 8 `usecase-test`.
-- **P1-C** tester self-check before return.
-- **P2** 10-minute agent liveness policy.
-
-## DECISIONS
-
-- **Size is declared, not inferred.** A breadth score computed from `CHANGED_HINT` was built
-  first and discarded: run against the whole epic it flagged 5 of 6 SPECs and ranked the
-  6-hour one *lowest*, because that SPEC's `CHANGED_HINT` named two modules while the work
-  crossed seven plus a Supabase grant. Anything derived from it is measuring a guess. The
-  `Acceptance-matrix:` cross-product ranks the same six correctly (05 → 60 cells, 06 → 12).
-- **Blocking is asymmetric.** An unnecessary gate costs hours; a wrong `PATCH ALLOWED` costs
-  one review cycle the loop was already going to run. The architect is told this explicitly.
-- The two-cycle budget no longer resets after a capsule — it becomes one final cycle, then a
-  handoff. `…-06` shows the failure mode of the old rule: stopped mid-SPEC, still in `active/`.
+- Added the strict backlog conveyor selector: `--feature --next --chain`.
+  - `--next` still resumes `active/` first, otherwise chooses the lowest ordered runnable backlog
+    SPEC; `--chain` never changes this resolution.
+  - Any other use of `--chain` (another mode, no `--next`, or `--backlog`) is rejected.
+  - After a successful `active/ → done/` move, required epic-close and post-ship moves run first.
+    A failure, unfinished human gate, or epic-review gap never creates another task.
+  - With another runnable backlog SPEC, Codex forks one `same-directory` task, preserving the
+    selected model and reasoning effort, and sends it `$mp --feature --next --chain`.
+  - It confirms the checkout is exactly `main`; it never switches branches, creates a Git branch,
+    or creates a worktree. A drained board creates no empty task.
+- Kept Claude safe and explicit: generated Claude runtime reports the next command but has no Codex
+  task-API instruction.
+- Bumped `VERSION` and all generated marketplace manifests to **1.16.0**; rebuilt
+  `claude-plugins/` and `codex-plugins/` from canonical templates.
+- Added `tests/test-chain-contract.sh`, invoked in CI. It checks selector validity, Codex-only
+  generated hand-off instructions, no Claude/tool-marker leakage, and runtime validation.
 
 ## VERIFIED
 
-- 13 test entry points pass, including new `tests/test-runner-android.sh` and Check 8 /
-  size-gate cases. `bash -n` clean on every touched script.
-- `tests/test-runner-android.sh` found a real bug while being written: the `task_not_found`
-  carve-out was dead in exactly the case it exists for (zero test suites set `FAILED=1` before
-  the classification ran). Fixed by classifying from the gradle log first.
-- Smoke bootstrap: 21 agents, 12 scripts, zero `{{...}}` / `platform:` / `tool:` leaks.
-- Marketplace rebuild byte-identical across two consecutive runs; all manifests at 1.15.0.
+- `bash tests/test-chain-contract.sh`
+- `bash tests/test-render-properties.sh`
+- `bash tests/test-bootstrap.sh`
+- `bash tests/test-sync.sh`
+- `bash tests/test-optimization-scripts.sh`
+- `bash lib/build-marketplace.sh --check-runtime` → 15 modes / 14 contracts
+- Marketplace regeneration completed twice without generated-marker or placeholder leaks.
 
-## NEXT (user-owned)
+## DECISIONS
 
-- **MyMoney must reinstall the plugin** — it is pinned to the 1.14.0 cache; none of this
-  reaches the project until then.
-- `plus-subscription-gating-06` is still half-done in `active/` with a handoff written by the
-  old contract. Under 1.15.0 the third blocker-pass would have continued on `PATCH ALLOWED`
-  instead of stopping.
-- Backfill `Acceptance-matrix:` on the epic's remaining backlog SPECs; without it the gate
-  returns `undeclared` and the orchestrator derives the line before implementing.
-- The `warn-only → enforce` decision for MyMoney's reviewer is still open (212-finding audit
-  from 1.14.0). Note MyMoney's config has no `reviewerMode`, so it is currently on `enforce`.
+- A Codex `same-directory` task fork is the hand-off primitive: it retains task model/effort while
+  staying on the exact local checkout. `create_thread` would use the configured default when model
+  and effort are omitted, not necessarily the current selection.
+- The chain does not bypass existing delivery, feedback, epic-close, verifier, or push gates. If a
+  closing action needs the user, it pauses there and only schedules the successor after the action
+  finishes cleanly.
+- A final/runnable-board check prevents a visibly useless empty Codex task after the last SPEC.
+
+## NEXT
+
+- Commit the prepared 1.16.0 changes directly to `main` and push the source marketplace.
+- Refresh/reinstall `mp-dev@mobile-pipeline` in the Codex app after the source update if its plugin
+  cache remains pinned to 1.15.0; the repository now contains the 1.16.0 Codex marketplace artifact.
 
 ## OWNER
 
-Claude. Codex owns `lib/render.sh`, `lib/sync.sh`, `bootstrap.sh`, `.codex/` as before —
-untouched this session.
+Codex.
 
 ## BLOCKERS
 
-None.
+None in the repository. The desktop app exposes no direct plugin-install/update operation to this
+task; its existing local cache was observed at 1.15.0.

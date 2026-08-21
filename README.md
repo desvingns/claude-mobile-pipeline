@@ -17,7 +17,7 @@ Everyday work runs through **two plugin commands** — `/mp-spec` (build the spe
 | **1** | **Plan from an APK reference** — implementation plan with phases | `/mp-spec <screenshots/> --apk app.apk --play <play_url>` → `/mp --plan --phases --bootstrap --from <bundle>/spec` | `spec/` bundle + per-screen fit checklist, then numbered `docs/implementation_plan/PHASE_NN_*.md` |
 | **2** | **Execute the phases, one task at a time** | `/mp --phase` (repeat) · `/mp --check` to validate · `/mp --fit` (clone gate) | One task per run: SPEC → develop → review → test → verify, ticked in `PROGRESS.md` |
 | **3** | **Spec from a brief (ТЗ) + fill the backlog** | `/mp-spec --greenfield` → `/mp --plan <epic-slug> --from <bundle>/spec` | `spec/` bundle from interview, then ordered SPECs on the `.claude/specs/backlog/` board |
-| **4** | **Execute the backlog SPECs, one at a time** | `/mp --feature --next` (repeat) · or `/mp --feature --backlog <slug>` | Each SPEC promoted `backlog → active → done` through the full develop→verify→push chain |
+| **4** | **Execute the backlog SPECs** | `/mp --feature --next` (repeat) · `/mp --feature --next --chain` (Codex conveyor) · or `/mp --feature --backlog <slug>` | Each SPEC promoted `backlog → active → done` through the full develop→verify→push chain; `--chain` starts the next local Codex task after a successful close |
 | **5** | **Spec a feature into an existing app's backlog** (brownfield, one step) | `/mp-spec --feature "<feature>"` → `/mp --feature --next` | Grounds in the live codebase, grills the ambiguities, decomposes → an epic of ordered SPECs straight onto `.claude/specs/backlog/` — **no** `spec/` bundle, **no** `/mp --plan` bridge |
 
 **1 → 2** is the heavy *clone* loop (reference fit is a verifiable gate — see

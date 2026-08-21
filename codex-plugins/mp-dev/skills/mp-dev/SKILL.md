@@ -31,7 +31,10 @@ Use this skill as a thin Codex bridge over the canonical Claude `mp-dev` pipelin
    when neither runtime exists.
 6. Interpret `$mp` and `/mp` as the Codex equivalent of the selected `/mp` workflow.
 
-Supported modes include `--feature`, `--bugfix`, `--discuss`, `--spec`, `--coverage`, `--device`, `--fit`, `--plan`, `--phase`, `--check`, `--improve`, and `--reflect`.
+Supported modes include `--feature`, `--bugfix`, `--discuss`, `--spec`, `--coverage`, `--device`, `--fit`, `--plan`, `--phase`, `--check`, `--improve`, and `--reflect`. `--chain` is valid only as
+`$mp --feature --next --chain`: after a successful SPEC close, follow the runtime's Codex hand-off
+contract to fork one local same-directory task and send it the same command. Never substitute a
+worktree, Git branch, or a newly selected model/effort.
 
 ## Native Agents
 

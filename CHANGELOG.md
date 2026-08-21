@@ -6,6 +6,16 @@ This repo uses [Semantic Versioning](https://semver.org/) — see `README.md` �
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-21
+
+### Added
+- **Codex backlog conveyor: `--feature --next --chain`.** It keeps `--next`'s active-first,
+  ordered-backlog resolution, then after a successful `active/ → done/` close forks one fresh
+  local same-directory Codex task for the next runnable SPEC. The hand-off retains the selected
+  model and reasoning effort, works directly in `main`, and never creates a worktree or Git branch.
+  It deliberately stops when the board is drained, a verification/epic-close check fails, or an
+  existing human gate still needs an answer.
+
 ## [1.15.0] - 2026-08-15
 
 1.14.0 made the gates live; this release makes the loop around them terminate. A measured

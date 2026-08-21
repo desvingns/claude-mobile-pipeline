@@ -50,4 +50,22 @@ Skip entirely when the task was trivial.
 - If any telemetry call this session returned `"retro_due":true` → offer the retro once
   (see **Run telemetry**).
 
+### `--feature --next --chain` (Codex only)
+
+This modifier authorizes one fresh Codex task after the current backlog SPEC has **successfully**
+moved `active/ → done/`. It is a conveyor, not a bypass: run every applicable epic-completion and
+post-ship step above first. If any check failed, a human gate is still awaiting an answer, the epic
+review found a gap, or the current SPEC was not moved to `done/`, do **not** create a task.
+
+Before hand-off, inspect `.claude/specs/`: ignore `*-00-overview.md` files and create a successor
+only when at least one runnable SPEC remains in `backlog/`. If none remains, report that the chain
+completed normally and create no empty task. The next invocation still uses `--next`, so its standard
+rule remains authoritative: if an active SPEC exists when it starts, it resumes that SPEC; otherwise
+it takes the first ordered backlog SPEC.
+
+
+Codex task creation is unavailable in Claude. After a successful close, report the next command
+`/mp --feature --next --chain` and stop; never emulate it by spawning an implementation
+agent in the current session.
+
 ---

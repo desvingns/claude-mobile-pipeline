@@ -1,6 +1,6 @@
 {
   "name": "mp-dev",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "Per-project mobile dev orchestrator (/mp) + specialist agents for Android/iOS. Generic agent bodies read project specifics from .claude/mp/config.json + CLAUDE.md + optional .claude/mp/extras/*.md.",
   "author": {
     "name": "Kirill Shavrin",

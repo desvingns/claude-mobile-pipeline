@@ -646,3 +646,11 @@ summary: every spawned agent records an event, phase events carry human_wait_ms,
 reason: recorded events covered 18% of one SPEC's wall clock while the tester, verifier, architect and critic emitted nothing, so the retro could only conclude the time went somewhere; agent time, orchestration and waiting for a sleeping human are three problems that one duration_ms blurs into a wrong diagnosis
 affects: claude, codex
 by: claude
+
+## 2026-08-21T07:45-codex-chain-backlog
+type: add
+target: templates/common/commands/{{PREFIX}}.md, templates/common/commands/runtime/{feature,contract-post-ship,contract-rules-board}.md, templates/dev/codex/skills/mp-dev/SKILL.md
+summary: add the strict `--feature --next --chain` Codex backlog conveyor, using a same-directory task fork only after a successful close and post-ship completion when another runnable SPEC exists
+reason: running one backlog SPEC per manually created Codex task loses the chosen model/effort and makes ordered continuation unreliable; a disk-backed successor hand-off retains the active-first `--next` rule without creating a worktree or Git branch
+affects: claude, codex
+by: codex

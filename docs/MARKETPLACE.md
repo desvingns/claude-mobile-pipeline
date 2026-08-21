@@ -74,6 +74,12 @@ Codex sub-agents (dev): the `mp-dev` Codex plugin provides the `$mp`/`/mp` skill
 bodies from the plugin cache and then `.claude/mp/extras/<agent>.md`, so Claude and Codex share the
 same project-specific overrides.
 
+For a backlog conveyor in Codex, invoke `$mp --feature --next --chain`. It preserves `--next`'s
+active-first selection and, after a successful SPEC close, forks one fresh **local,
+same-directory** Codex task for the next runnable SPEC. The fork retains the task's selected model
+and reasoning effort; it does not create a worktree or Git branch and refuses to continue from a
+non-`main` checkout. Existing verifier, epic-close, push, and human gates still stop the conveyor.
+
 ## `mp-dev` runtime config (per project)
 
 The plugin agents are project-agnostic; project facts are read at runtime from

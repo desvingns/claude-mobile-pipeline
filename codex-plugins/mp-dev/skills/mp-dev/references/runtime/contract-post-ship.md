@@ -50,4 +50,29 @@ Skip entirely when the task was trivial.
 - If any telemetry call this session returned `"retro_due":true` → offer the retro once
   (see **Run telemetry**).
 
+### `--feature --next --chain` (Codex only)
+
+This modifier authorizes one fresh Codex task after the current backlog SPEC has **successfully**
+moved `active/ → done/`. It is a conveyor, not a bypass: run every applicable epic-completion and
+post-ship step above first. If any check failed, a human gate is still awaiting an answer, the epic
+review found a gap, or the current SPEC was not moved to `done/`, do **not** create a task.
+
+Before hand-off, inspect `.claude/specs/`: ignore `*-00-overview.md` files and create a successor
+only when at least one runnable SPEC remains in `backlog/`. If none remains, report that the chain
+completed normally and create no empty task. The next invocation still uses `--next`, so its standard
+rule remains authoritative: if an active SPEC exists when it starts, it resumes that SPEC; otherwise
+it takes the first ordered backlog SPEC.
+
+1. Confirm `git branch --show-current` returns `main`. If it does not, stop and report the actual
+   branch; do not switch branches and do not schedule a task from an unexpected checkout.
+2. Fork the current Codex task with `fork_thread` and
+   `environment: { type: "same-directory" }`. This makes a new local task on the same checkout
+   without a worktree or Git branch, retaining this task's selected model and reasoning effort.
+3. When the fork returns its task id, send that task exactly this user-visible follow-up prompt:
+   `Run $mp --feature --next --chain now. Work directly in the current main checkout; do not create a worktree or Git branch. If no active or runnable backlog SPEC remains, report the drained board and stop.`
+4. If forking or sending the prompt fails, report the failure and do not retry by creating another
+   task. The completed SPEC stays durable on the board, so the user can safely start
+   `$mp --feature --next --chain` manually.
+
+
 ---

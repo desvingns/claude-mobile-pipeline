@@ -586,7 +586,7 @@ validate_dev_runtime() {
   for flag in \
     --agent --backlog --bootstrap --bugfix --built --check --continue --cost --coverage \
     --deliver --device --discuss --drain --feature --fit --format --from --improve --login \
-    --metric --model --name-status --next --note --out --phase --phases --plan --reference \
+    --metric --model --name-status --next --chain --note --out --phase --phases --plan --reference \
     --reflect --retry --show-toplevel --spec --sync --target --tdd --tokens-in --tokens-out \
     --tokens-cached --tokens-reasoning --cost-usd --duration-ms --correlation-id --upgrade --verdict
   do

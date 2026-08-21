@@ -3,7 +3,12 @@
 
 ## Workflow: --feature
 
-**Mode select (read first).** If `--feature` carries `--next` or `--backlog <slug>` (or has no description while `.claude/specs/active/` holds a SPEC) → this is **backlog-consume mode**: the SPEC already exists and was approved when it entered the backlog, so SKIP Phase 0 + Phase 1 (no brainstorm, no questions, no SPEC re-draft, no approval gate) and jump to Phase 2:
+**Mode select (read first).** `--chain` is valid only with the exact selector
+`--feature --next --chain`; reject every other use before inspecting the board. If `--feature`
+carries `--next` (optionally `--chain`) or `--backlog <slug>` (or has no description while
+`.claude/specs/active/` holds a SPEC) → this is **backlog-consume mode**: the SPEC already exists and
+was approved when it entered the backlog, so SKIP Phase 0 + Phase 1 (no brainstorm, no questions, no
+SPEC re-draft, no approval gate) and jump to Phase 2:
 
 1. Resolve the file — `--backlog <slug>` → the `.claude/specs/backlog/` file whose name matches `<slug>`; `--next` (or bare `--feature` with no description) → resume the SPEC already in `.claude/specs/active/` if one exists, else the top-ordered runnable file in `backlog/` (lowest `NN`; ignore `*-00-overview.md` index files).
 2. **Staleness pre-check (cheap, before promoting).** A backlog SPEC can be drafted well before it is consumed, and the codebase may have moved on — a prior epic/review pass, or an adjacent SPEC, can leave this one fully or partially built already. Before moving the file, do a cheap grep/explore pass for the SPEC's target symbols/screens (the `CHANGED_HINT` entries + key `WHAT` behaviour terms) against current code:
@@ -35,7 +40,7 @@
    full build. Post-ship feedback shows misread visual intent is a top rework cause, and this mode
    skips the Phase 1 echo-back that would otherwise have caught it. It applies to every project,
    clone or not — a greenfield screen can be misread just as easily.
-4. On ship (Verifier pass / push), move it `active/ → done/`, fill `Implementation links` (commit + files), set `Status: done`. Then run the **Epic completion (final review + close)** check (see **SPEC backlog board**): if this was the epic's last SPEC, review the epic against ALL requirements in its `-00-overview.md` and, on a clean review, move that index `backlog/ → done/` too.
+4. On ship (Verifier pass / push), move it `active/ → done/`, fill `Implementation links` (commit + files), set `Status: done`. Then run the **Epic completion (final review + close)** check (see **SPEC backlog board**): if this was the epic's last SPEC, review the epic against ALL requirements in its `-00-overview.md` and, on a clean review, move that index `backlog/ → done/` too. Complete the post-ship contract before a `--chain` hand-off; a failed check, an unresolved human gate, or an incomplete epic never schedules another SPEC.
 
 If a free-text description was given instead → run Phase 0 → Phase 1 → Phase 2 as normal.
 

@@ -22,7 +22,7 @@ a workflow from memory.
 ## Lazy-loading protocol
 
 1. Parse the user's selector using the table below. Sub-flags never select a second mode:
-   `--tdd`, `--next`, and `--backlog` belong to `feature`; `--phases`, `--bootstrap`,
+   `--tdd`, `--next`, `--chain`, and `--backlog` belong to `feature`; `--phases`, `--bootstrap`,
    `--sync`, and `--from` belong to `plan`; `--drain` belongs to `improve`.
 2. If no selector is present, ask whether this is a feature, bug, or brainstorm; do not load a
    runbook until the answer selects one mode.
@@ -40,7 +40,7 @@ a workflow from memory.
 
 | Selector | Runbook | Important sub-flags / arguments |
 |---|---|---|
-| `--feature` | `feature.md` | `--tdd`, `--next`, `--backlog <slug>`, or free-text description |
+| `--feature` | `feature.md` | `--tdd`, `--next`, `--next --chain`, `--backlog <slug>`, or free-text description |
 | `--bugfix` | `bugfix.md` | broken-behaviour description |
 | `--discuss` | `discuss.md` | read-only topic brainstorm |
 | `--spec` | `spec.md` | backlog-only authoring, no implementation |
@@ -59,6 +59,11 @@ a workflow from memory.
 Unknown or conflicting primary selectors are an error: show this table and ask the user to choose
 one. Preserve every human gate, structured payload, retry limit, write boundary, and report shape
 defined by the loaded files.
+
+**`--chain` is a strict feature modifier.** It is valid only in the exact combination
+`--feature --next --chain`; reject it with any other primary selector, with `--backlog`, or without
+`--next`. It never changes which SPEC `--next` resolves. Its only effect is a Codex-only hand-off
+after a successful SPEC close, as defined by the selected `feature.md` and post-ship contract.
 
 **`--unattended`** is a modifier, not a mode: it may accompany any selector above and declares that
 nobody is watching. Advisory gates then proceed on their recommended default and are reported in a
