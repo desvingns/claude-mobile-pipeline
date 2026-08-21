@@ -1,6 +1,6 @@
 # Handoff
 
-Last session: Codex · 2026-08-21 · prepared **1.16.0** on `main`.
+Last session: Codex · 2026-08-21 · released **1.16.0** on `main` (`18eaf3b`).
 
 ## DONE
 
@@ -43,7 +43,6 @@ Last session: Codex · 2026-08-21 · prepared **1.16.0** on `main`.
 
 ## NEXT
 
-- Commit the prepared 1.16.0 changes directly to `main` and push the source marketplace.
 - Refresh/reinstall `mp-dev@mobile-pipeline` in the Codex app after the source update if its plugin
   cache remains pinned to 1.15.0; the repository now contains the 1.16.0 Codex marketplace artifact.
 
