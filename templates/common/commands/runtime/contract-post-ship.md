@@ -47,8 +47,17 @@ Skip entirely when the task was trivial.
 - Resolve `mp_repo` (as in `--improve`; skip silently if unresolved). Count
   `mp_repo/.ai/proposals/*.patch`: if ≥3 → tell the user
   "N pipeline improvement proposal(s) are queued — run `/{{PREFIX}} --improve --drain` to open the batch PR."
-- If any telemetry call this session returned `"retro_due":true` → offer the retro once
-  (see **Run telemetry**).
+- If any telemetry call this session returned `"retro_due":true`, emit exactly one advisory retro
+  follow-up after the completion summary (see **Run telemetry**). This offer is fire-and-forget:
+  render it separately from any blocking question and never wait for `y/N` before close-out, push,
+  docs, feedback handling, or the task-complete report. An unrelated safety/device gate remains
+  separately named and remains the only blocker; `retro_due` must neither create nor absorb that
+  gate. If the harness supports background/parallel follow-ups, the retro may be scheduled
+  independently; otherwise the user may answer it on a later turn. An unanswered offer never
+  prevents the current task from being considered complete.
+
+ A pending retro offer is advisory, not a human gate, and must not prevent the `--chain` hand-off
+ once the required close-out is complete.
 
 ### `--feature --next --chain` (Codex only)
 

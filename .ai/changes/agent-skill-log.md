@@ -654,3 +654,11 @@ summary: add the strict `--feature --next --chain` Codex backlog conveyor, using
 reason: running one backlog SPEC per manually created Codex task loses the chosen model/effort and makes ordered continuation unreliable; a disk-backed successor hand-off retains the active-first `--next` rule without creating a worktree or Git branch
 affects: claude, codex
 by: codex
+
+## 2026-08-21T11:16-retro-advisory-fire-and-forget
+type: update
+target: templates/common/commands/runtime/contract-post-ship.md, templates/common/commands/runtime/contract-telemetry.md, templates/common/commands/runtime/contract-rules-learning.md
+summary: retro_due is now an exactly-once advisory follow-up that never gates close-out or unrelated blockers
+reason: keep optional retro nudges from making a completed feature or bugfix appear paused behind a user response
+affects: claude, codex
+by: mp-improve

@@ -66,7 +66,13 @@ Omit unknown fields. `--cost` remains a legacy free-text input only—new record
 `--cost-usd`.
 
 Telemetry is **fire-and-forget**: it must never block, fail, or retry the pipeline. If the script
-is missing or errors, continue silently. Parse its single JSON line only to read `retro_due`:
-when any call returns `"retro_due":true`, after the current workflow finishes offer ONCE —
+is missing or errors, continue silently. Parse its single JSON line only to read `retro_due`; a
+telemetry failure never changes this. When any call returns `"retro_due":true`, queue exactly one
+advisory retro follow-up for after the main completion summary:
 "N runs since the last retro — run `bash .claude/scripts/{{PREFIX}}-retro.sh` now? (y/N)".
-On `y`, run it and show the retro path + the per-agent pass-rate table from the file.
+The offer itself is fire-and-forget: emit it as a separate optional follow-up, never as a blocking
+question, and do not await `y/N` or make it the reason for pausing or withholding close-out, push,
+docs, feedback, or the completion report. If an unrelated safety/device gate is active, report
+that gate independently; do not conflate it with the retro offer. If the harness supports
+background/parallel work, the retro may run independently; otherwise the user may answer on a
+later turn. On `y`, run it and show the retro path + the per-agent pass-rate table from the file.
