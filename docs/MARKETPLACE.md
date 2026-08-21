@@ -75,10 +75,10 @@ bodies from the plugin cache and then `.claude/mp/extras/<agent>.md`, so Claude 
 same project-specific overrides.
 
 For a backlog conveyor in Codex, invoke `$mp --feature --next --chain`. It preserves `--next`'s
-active-first selection and, after a successful SPEC close, forks one fresh **local,
-same-directory** Codex task for the next runnable SPEC. The fork retains the task's selected model
-and reasoning effort; it does not create a worktree or Git branch and refuses to continue from a
-non-`main` checkout. Existing verifier, epic-close, push, and human gates still stop the conveyor.
+active-first selection and, after a successful SPEC close, creates one fresh **local,
+same-project** Codex task with an empty conversation for the next runnable SPEC. The new task does
+not inherit the previous turns, create a worktree, or create a Git branch; the hand-off only runs
+from `main`. Existing verifier, epic-close, push, and human gates still stop the conveyor.
 
 ## `mp-dev` runtime config (per project)
 

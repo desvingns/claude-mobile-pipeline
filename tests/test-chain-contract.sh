@@ -15,15 +15,25 @@ grep -Fq -- '--next --chain' "$ROUTER"
 grep -Fq -- '`--feature --next --chain`' "$FEATURE"
 grep -Fq -- 'only when at least one runnable SPEC remains' "$POST_SHIP"
 grep -Fq -- 'git branch --show-current` returns `main`' "$POST_SHIP"
-grep -Fq -- 'fork_thread' "$POST_SHIP"
-grep -Fq -- 'environment: { type: "same-directory" }' "$POST_SHIP"
-grep -Fq -- 'send that task exactly this user-visible follow-up prompt' "$POST_SHIP"
+grep -Fq -- 'create_thread' "$POST_SHIP"
+grep -Fq -- 'environment: { type: "local" }' "$POST_SHIP"
+grep -Fq -- 'empty conversation' "$POST_SHIP"
+if grep -Fq -- 'fork_thread' "$POST_SHIP"; then
+  echo 'chain-contract: Codex runtime must create a fresh task, not fork history' >&2
+  exit 1
+fi
+grep -Fq -- 'send that task exactly this user-visible prompt' "$POST_SHIP"
 grep -Fq -- '$mp --feature --next --chain' "$CODEX_SKILL"
 
 bash "$ROOT/lib/build-marketplace.sh" --check-runtime >/dev/null
 
-grep -Fq -- 'fork_thread' "$CODEX_RUNTIME/contract-post-ship.md"
-grep -Fq -- 'environment: { type: "same-directory" }' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'create_thread' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'environment: { type: "local" }' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'empty conversation' "$CODEX_RUNTIME/contract-post-ship.md"
+if grep -Fq -- 'fork_thread' "$CODEX_RUNTIME/contract-post-ship.md"; then
+  echo 'chain-contract: Codex thread fork API leaked into runtime' >&2
+  exit 1
+fi
 grep -Fq -- '$mp --feature --next --chain' "$CODEX_RUNTIME/contract-post-ship.md"
 if grep -Fq -- 'fork_thread' "$CLAUDE_RUNTIME/contract-post-ship.md"; then
   echo 'chain-contract: Codex thread API leaked into Claude runtime' >&2

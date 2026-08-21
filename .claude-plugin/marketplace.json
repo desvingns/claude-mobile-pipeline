@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Reusable mobile (Android/iOS) agent pipeline: spec-bundle creator (/mp-spec) and per-project dev orchestrator (/mp). One canonical source in templates/, emitted into these plugin trees by lib/build-marketplace.sh.",
-    "version": "1.16.0"
+    "version": "1.17.0"
   },
   "plugins": [
     {

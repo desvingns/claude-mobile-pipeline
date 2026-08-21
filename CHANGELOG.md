@@ -6,6 +6,14 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-21
+
+### Changed
+- **Codex backlog conveyor starts each SPEC in a new independent task.** `--feature --next --chain`
+  now creates a local task with an empty conversation through `create_thread`; it never forks or
+  inherits the previous task's turns, and it still refuses worktrees, branches, and non-`main`
+  checkouts.
+
 ## [1.16.0] - 2026-08-21
 
 ### Added

@@ -66,13 +66,16 @@ it takes the first ordered backlog SPEC.
 <!-- tool:codex -->
 1. Confirm `git branch --show-current` returns `main`. If it does not, stop and report the actual
    branch; do not switch branches and do not schedule a task from an unexpected checkout.
-2. Fork the current Codex task with `fork_thread` and
-   `environment: { type: "same-directory" }`. This makes a new local task on the same checkout
-   without a worktree or Git branch, retaining this task's selected model and reasoning effort.
-3. When the fork returns its task id, send that task exactly this user-visible follow-up prompt:
+2. Resolve the current saved project with `list_projects`, verify that it is this repository, and
+   create a new Codex task with `create_thread` using
+   `target: { type: "project", projectId, environment: { type: "local" } }`. Omit
+   `startingState`, `model`, and `thinking`: the task starts from the project's default `main`
+   checkout with an empty conversation. Do not fork the current task; the new task must not inherit
+   any turns or parent context, and it must not create a worktree or Git branch.
+3. When the new task returns its task id, send that task exactly this user-visible prompt:
    `Run $mp --feature --next --chain now. Work directly in the current main checkout; do not create a worktree or Git branch. If no active or runnable backlog SPEC remains, report the drained board and stop.`
-4. If forking or sending the prompt fails, report the failure and do not retry by creating another
-   task. The completed SPEC stays durable on the board, so the user can safely start
+4. If project resolution, task creation, or sending the prompt fails, report the failure and do not
+   retry by creating another task. The completed SPEC stays durable on the board, so the user can safely start
    `$mp --feature --next --chain` manually.
 <!-- /tool:codex -->
 

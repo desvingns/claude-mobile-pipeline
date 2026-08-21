@@ -33,9 +33,9 @@ between folders is how its status changes — there is no separate state store.
   backlog**: it is treated as already created + approved, so Phase 0/1 are skipped — the file moves
   `backlog/ → active/` and goes straight to implementation, then to `done/`.
 - `/{{PREFIX}} --feature --next --chain` — Codex-only backlog conveyor. It chooses the same SPEC as
-  `--next`; after a successful `done` transition it opens one fresh local Codex task for the next
-  runnable SPEC, using the same checkout, model, and reasoning effort. It never creates a worktree
-  or Git branch, and it stops cleanly when the board is drained or any gate blocks.
+  `--next`; after a successful `done` transition it opens one fresh local Codex task with an empty
+  conversation for the next runnable SPEC. It never inherits the previous task, creates a worktree,
+  or creates a Git branch, and it stops cleanly when the board is drained or any gate blocks.
 - A single-SPEC feature skips the board — the SPEC is shown inline in chat as before.
 - `/{{PREFIX}} --discuss <topic>` — still writes a single `<slug>.md` brainstorm artifact at the
   root (format at the bottom). When a brainstorm graduates into a multi-SPEC plan, those SPECs go
@@ -126,7 +126,7 @@ and writing them down is both the honest size estimate and the review's terminat
 | `--spec <desc>` | write SPEC file(s) to `backlog/` with `Status: draft` — no approval gate (grooming) |
 | `--feature <desc>` splits into ≥2 SPECs | write SPEC files into `backlog/` (+ overview) behind one y/N gate, promote the first |
 | `--feature --next` / `--backlog <slug>` | take a backlog SPEC (already approved) → move `backlog/ → active/`, `Status: active`, run Phase 2 — Phase 0/1 skipped |
-| `--feature --next --chain` (Codex) | same selection as `--next`; after a successful close, schedule one local same-directory Codex task only when another runnable SPEC remains |
+| `--feature --next --chain` (Codex) | same selection as `--next`; after a successful close, create one new local Codex task with an empty conversation only when another runnable SPEC remains |
 | SPEC shipped (Verifier pass / push) | move `active/ → done/`, fill `commit` + `files`, set `Status: done` |
 
 Moving a SPEC to `active/` never bypasses the human SPEC-approval gate — Phase 2 still waits for

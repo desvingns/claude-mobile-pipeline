@@ -157,6 +157,14 @@ reason: avoid broken prompt reads after removing the old app-spec-creator global
 affects:
 by: codex
 
+## 2026-08-21T15:00-codex-chain-fresh-task
+type: update
+target: templates/common/commands/runtime/contract-post-ship.md, templates/dev/codex/skills/mp-dev/SKILL.md, templates/common/specs/README.md, tests/test-chain-contract.sh
+summary: change the Codex `--feature --next --chain` hand-off from `fork_thread` to `create_thread` in the saved local project, so every successor SPEC starts in a new task with an empty conversation and no inherited parent context
+reason: one SPEC must equal one independent Codex task; carrying prior turns inflates context and causes the next SPEC to appear as a continuation instead of a fresh chat
+affects: codex
+by: codex
+
 ## 2026-06-01T09:00-codex-model-tiering
 type: update
 target: install-spec.sh, templates/spec/codex/agent.toml.tmpl, templates/spec/skills/app-spec-creator/SKILL.md, templates/common/agents/{{PREFIX}}-maintainer.md, templates/common/commands/{{PREFIX}}.md, docs/SPEC-PIPELINE.md, docs/MARKETPLACE.md, CHANGELOG.md
