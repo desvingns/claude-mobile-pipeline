@@ -92,6 +92,7 @@ jobs:
           bash tests/test-graphify-wrapper.sh
           bash tests/test-bootstrap.sh
           bash tests/test-chain-contract.sh
+          bash tests/test-github-push-contract.sh
           bash eval/runner.sh
 
       - name: Marketplace generator parses on every host

@@ -367,6 +367,14 @@ reason: Pipeline declared a cold-start bug fixed twice over because (1) Develope
 affects: claude, codex
 by: mp-improve
 
+## 2026-08-22T22:00-codex-github-chain-reliability
+type: fix
+target: templates/common/commands/runtime/{contract-feature-implementation,bugfix,contract-post-ship}.md, templates/dev/codex/skills/mp-dev/SKILL.md, tests/test-{chain-contract,github-push-contract}.sh, VERSION, CHANGELOG.md
+summary: standard MP pushes now use origin's configured credential helper first with a guarded optional GITHUB_TOKEN fallback; Codex chain creates the successor task with the exact command as its required initial prompt instead of attempting an empty create_thread prompt and a second message
+reason: the normal GitHub CLI credential helper worked while the runtime's token-only URL failed, and the current Codex task API rejects an empty prompt
+affects: claude, codex
+by: codex
+
 ## 2026-06-20T13:17-postship-deliver-before-feedback
 type: fix
 target: templates/common/commands/{{PREFIX}}.md, templates/common/scripts/{{PREFIX}}-deliver-telegram.sh

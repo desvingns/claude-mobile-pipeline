@@ -76,9 +76,9 @@ same project-specific overrides.
 
 For a backlog conveyor in Codex, invoke `$mp --feature --next --chain`. It preserves `--next`'s
 active-first selection and, after a successful SPEC close, creates one fresh **local,
-same-project** Codex task with an empty conversation for the next runnable SPEC. The new task does
-not inherit the previous turns, create a worktree, or create a Git branch; the hand-off only runs
-from `main`. Existing verifier, epic-close, push, and human gates still stop the conveyor.
+same-project** Codex task whose only initial prompt is the chain command. The new task does not
+inherit the previous turns, create a worktree, or create a Git branch; the hand-off only runs from
+`main`. Existing verifier, epic-close, push, and human gates still stop the conveyor.
 
 ## `mp-dev` runtime config (per project)
 
@@ -208,8 +208,9 @@ mobile-pipeline changes only through a reviewed PR (never a silent push); patche
   `~/.config/mobile-pipeline/projects.txt` (Git-Bash style path, one per line) so `/mp --reflect`
   sees it; a weekly scheduled `/mp --reflect` is recommended (see `selfimprove/README.md` →
   "Scheduling the loop").
-- **gh** — the auto-PR step needs the GitHub CLI (`gh`), authenticated (it reads `GITHUB_TOKEN`). Without
-  it the scripts still push the `improve/*` branch and print the URL to open the PR manually.
+- **gh** — the auto-PR step needs the GitHub CLI (`gh`) authenticated via `gh auth login` or
+  `GITHUB_TOKEN`. Without it the scripts still push the `improve/*` branch and print the URL to
+  open the PR manually.
 
 See "Proposed alternatives" in `.ai/tasks/claude-003-marketplace.md` for the fully-automatic variant.
 

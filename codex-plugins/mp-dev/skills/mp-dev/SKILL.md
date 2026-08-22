@@ -33,8 +33,9 @@ Use this skill as a thin Codex bridge over the canonical Claude `mp-dev` pipelin
 
 Supported modes include `--feature`, `--bugfix`, `--discuss`, `--spec`, `--coverage`, `--device`, `--fit`, `--plan`, `--phase`, `--check`, `--improve`, and `--reflect`. `--chain` is valid only as
 `$mp --feature --next --chain`: after a successful SPEC close, follow the runtime's Codex hand-off
-contract to create one new independent local task with an empty conversation and send it the same
-command. Never fork or inherit the current task, and never substitute a worktree or Git branch.
+contract to create one new independent local task with no inherited conversation and the exact chain
+command as its required initial user message. Do not send a second message. Never fork or inherit the
+current task, and never substitute a worktree or Git branch.
 
 ## Native Agents
 

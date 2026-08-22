@@ -1,29 +1,44 @@
 ---
 name: git-push-via-token
-description: "/{{PREFIX}} pipeline pushes via GITHUB_TOKEN env var (configured in ~/.claude/settings.json), using a rewritten origin URL — works cross-platform without remote-URL hardcoding."
+description: "/{{PREFIX}} pipeline pushes through origin's configured credential helper, with an optional GITHUB_TOKEN fallback."
 metadata:
   node_type: memory
   type: reference
 ---
 
-`/{{PREFIX}}` pipeline pushes commits to remote via the **`GITHUB_TOKEN`** environment variable.
-
-**Where it's configured:** `~/.claude/settings.json` (user-global settings). Env var is available on all platforms (Linux, macOS, Windows under Git Bash) — picked up by every Bash invocation in the pipeline.
+`/{{PREFIX}}` pipeline pushes commits through the configured **`origin`** remote first. This uses
+the credential helper already configured on the machine, such as `gh auth`, Git Credential Manager,
+or SSH. `GITHUB_TOKEN` is supported only as an explicit non-interactive fallback.
 
 **Where it's used:** the `/{{PREFIX}}` orchestrator, Step 5 (`--feature`) and Step 4 (`--bugfix`). Script:
 
 ```bash
-remote_path=$(git remote get-url origin | sed -e 's#^https://[^/]*@#https://#' -e 's#^https://##')
-git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
+# The normal path is credential-helper based and does not need GITHUB_TOKEN.
+if ! GIT_TERMINAL_PROMPT=0 git push origin HEAD; then
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    remote_url=$(git remote get-url origin)
+    case "$remote_url" in
+      https://*)
+        remote_path=$(printf '%s' "$remote_url" | sed -e 's#^https://[^/]*@#https://#' -e 's#^https://##')
+        GIT_TERMINAL_PROMPT=0 git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
+        ;;
+      *) echo "origin is not an HTTPS remote; configure its credential helper." >&2 ;;
+    esac
+  else
+    echo "origin credentials are unavailable and GITHUB_TOKEN is not set." >&2
+  fi
+fi
 ```
 
-The sed filter strips any existing `https://user@` prefix and the `https://` scheme, leaving `github.com/owner/repo`. Then the URL is reassembled with `x-access-token`. This lets the pipeline reuse whatever `origin` is configured, without hardcoding the URL per project.
+The token fallback strips any existing `https://user@` prefix and the `https://` scheme before
+reassembling the URL. This lets the pipeline reuse whatever HTTPS `origin` is configured, without
+hardcoding the repository URL per project.
 
 **If push doesn't work:**
 
-- Check `echo $GITHUB_TOKEN` via Bash — empty means the env var isn't being set
+- Check `git remote -v` and the machine's Git credential helper (`gh auth status` is useful for GitHub)
+- If using the fallback, check that `GITHUB_TOKEN` is explicitly available in the Bash environment
 - Check the token's scope on GitHub: need `repo` (for private) or `public_repo` (for public)
-- On Windows, verify `settings.json` uses the right key (`env` / `environmentVariables` — depends on Claude Code version)
 
 The script continues the pipeline without blocking if push fails — this is by design (see `/{{PREFIX}}.md`: "If push fails → show error to user and continue without blocking").
 

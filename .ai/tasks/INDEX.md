@@ -16,6 +16,7 @@ None.
 
 ## COMPLETE / HISTORICAL
 
+- `codex-003-github-chain-reliability.md` — repaired standard GitHub push and Codex chain hand-off.
 - `codex-002-system-optimization.md` — token, quality, memory/brain, telemetry, eval, sync, graph,
   and CI optimization release (`1.12.0`).
 - `claude-002-spec-integration.md`, `claude-003-marketplace.md`, `claude-005-grill-me.md`.

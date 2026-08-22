@@ -21,4 +21,5 @@ All shell commands in the `/{{PREFIX}}` pipeline and all `{{PREFIX}}-*` agents m
 - Android: [[cross-platform-bash-jbr]] — JBR detection for JDK 17+ on Linux / macOS / Windows
 - iOS: [[cross-platform-bash-xcode]] — Xcode developer dir, `xcode-select -p`, DEVELOPER_DIR
 
-Push to remote works via `git push https://x-access-token:${GITHUB_TOKEN}@<remote_path>` (see [[git-push-via-token]]) — Bash-only.
+Push to remote prefers `git push origin HEAD` through the configured credential helper, with an
+optional HTTPS `GITHUB_TOKEN` fallback (see [[git-push-via-token]]) — Bash-only.
