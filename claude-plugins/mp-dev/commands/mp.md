@@ -76,5 +76,5 @@ nobody is watching. Advisory gates then proceed on their recommended default and
 close-out push and one Codex successor hand-off. That exception does not authorize unrelated
 pushes or other external side effects. All other destructive or outward-pushing gates — SPEC
 approval, `git push`, anything the user is asked to confirm elsewhere — still stop and wait. Use
-`--unattended` for overnight or background runs; preserve unattended policy in a `--chain`
-successor prompt, but do not infer unattended from `--chain` alone.
+`--unattended` for overnight or background runs. Natural-language instructions such as "skip all human gates", "пропускай все human gate", "do this without asking", or "run unattended" declare the same unattended policy. Preserve it in a
+`--chain` successor prompt, but do not infer unattended from `--chain` alone.
