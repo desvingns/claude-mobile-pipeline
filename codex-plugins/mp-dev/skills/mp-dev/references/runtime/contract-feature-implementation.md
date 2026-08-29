@@ -215,11 +215,26 @@ Record telemetry once the verifier resolves (see **Run telemetry**): `--agent ve
 
 **Step 5** — Push to remote (via the `Bash` tool):
 ```bash
-# Token is provided via the GITHUB_TOKEN env var (configured in ~/.claude/settings.json,
-# so it is available to every Bash invocation on all platforms).
+# Prefer the configured origin and its credential helper (gh, Git Credential Manager, or SSH).
+# Disable interactive prompts so a missing credential cannot hang the pipeline.
 # Reuse whatever remote is configured for `origin` instead of hard-coding the URL.
-remote_path=$(git remote get-url origin | sed -e 's#^https://[^/]*@#https://#' -e 's#^https://##')
-git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
+if ! GIT_TERMINAL_PROMPT=0 git push origin HEAD; then
+  # An explicit token is an optional non-interactive fallback, never a requirement.
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    remote_url=$(git remote get-url origin)
+    case "$remote_url" in
+      https://*)
+        remote_path=$(printf '%s' "$remote_url" | sed -e 's#^https://[^/]*@#https://#' -e 's#^https://##')
+        GIT_TERMINAL_PROMPT=0 git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
+        ;;
+      *)
+        echo "git push failed: origin is not an HTTPS remote and its credential helper is unavailable." >&2
+        ;;
+    esac
+  else
+    echo "git push failed: origin credentials are unavailable and GITHUB_TOKEN is not set." >&2
+  fi
+fi
 ```
 If push fails → show error to user and continue to Step 6 without blocking.
 

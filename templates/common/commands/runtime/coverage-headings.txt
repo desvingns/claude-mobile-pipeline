@@ -1,7 +1,6 @@
 # <Topic from BRAINSTORM, restated>
 # Reuse whatever remote is configured for `origin` instead of hard-coding the URL.
-# Token is provided via the GITHUB_TOKEN env var (configured in ~/.claude/settings.json,
-# so it is available to every Bash invocation on all platforms).
+# Prefer the configured origin and its credential helper (gh, Git Credential Manager, or SSH).
 ## Approved SPEC
 ## Brainstorm output
 ## Deterministic steps via .claude/scripts/

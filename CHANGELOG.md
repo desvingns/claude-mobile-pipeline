@@ -6,6 +6,16 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-08-22
+
+### Fixed
+- **GitHub push no longer requires `GITHUB_TOKEN`.** The standard runtime now uses the configured
+  `origin` credential helper first, disables interactive credential prompts, and uses an explicit
+  HTTPS token only as a fallback.
+- **Codex chain hand-off matches the current task API.** The successor task is created with the
+  exact chain command as its only initial prompt, so the runtime does not attempt an invalid empty
+  prompt followed by a second message.
+
 ## [1.17.0] - 2026-08-21
 
 ### Changed

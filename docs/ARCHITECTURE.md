@@ -155,7 +155,7 @@ MEMORY.md              ← flat index, auto-loaded into every Claude Code sessio
 ├── screen-content-extraction.md      ← Compose testing pattern (Android)
 ├── cross-platform-bash.md            ← Bash everywhere, never PowerShell (common)
 ├── cross-platform-bash-jbr.md        ← JBR detection (Android)
-├── git-push-via-token.md             ← GITHUB_TOKEN env var (common)
+├── git-push-via-token.md             ← origin credential helper + optional token fallback (common)
 └── iteration-progression.md          ← project history & iteration cadence
 ```
 

@@ -76,13 +76,14 @@ it takes the first ordered backlog SPEC.
    branch; do not switch branches and do not schedule a task from an unexpected checkout.
 2. Resolve the current saved project with `list_projects`, verify that it is this repository, and
    create a new Codex task with `create_thread` using
-   `target: { type: "project", projectId, environment: { type: "local" } }`. Omit
-   `startingState`, `model`, and `thinking`: the task starts from the project's default `main`
-   checkout with an empty conversation. Do not fork the current task; the new task must not inherit
-   any turns or parent context, and it must not create a worktree or Git branch.
-3. When the new task returns its task id, send that task exactly this user-visible prompt:
+   `target: { type: "project", projectId, environment: { type: "local" } }` with `prompt` set to
+   this exact required initial prompt (the API requires it to be non-empty):
    `Run $mp --feature --next --chain now. Work directly in the current main checkout; do not create a worktree or Git branch. If no active or runnable backlog SPEC remains, report the drained board and stop.`
-4. If project resolution, task creation, or sending the prompt fails, report the failure and do not
+   Omit `startingState`, `model`, and `thinking`: the task starts from the project's default `main`
+   checkout and has no inherited conversation, turns, or parent context. Do not fork the current
+   task, and do not create a worktree or Git branch.
+3. Do not send a second message: the exact command above is the task's only initial user message.
+4. If project resolution or task creation fails, report the failure and do not
    retry by creating another task. The completed SPEC stays durable on the board, so the user can safely start
    `$mp --feature --next --chain` manually.
 
