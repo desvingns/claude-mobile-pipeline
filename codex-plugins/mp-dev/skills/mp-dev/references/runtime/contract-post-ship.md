@@ -75,17 +75,26 @@ it takes the first ordered backlog SPEC.
 1. Confirm `git branch --show-current` returns `main`. If it does not, stop and report the actual
    branch; do not switch branches and do not schedule a task from an unexpected checkout.
 2. Resolve the current saved project with `list_projects`, verify that it is this repository, and
-   create a new Codex task with `create_thread` using
-   `target: { type: "project", projectId, environment: { type: "local" } }` with `prompt` set to
-   this exact required initial prompt (the API requires it to be non-empty):
+   create a new Codex task with `create_thread`, with `prompt` set to the selected exact command.
+   Preserve the current unattended policy in the
+   successor: when this run used `--unattended`, or the user said to skip all human gates / run
+   without asking, use this exact required initial prompt (the API requires it to be non-empty):
+   `Run $mp --feature --next --chain --unattended now. Work directly in the current main checkout; do not create a worktree or Git branch. If no active or runnable backlog SPEC remains, report the drained board and stop.`
+   Otherwise use this exact required initial prompt:
    `Run $mp --feature --next --chain now. Work directly in the current main checkout; do not create a worktree or Git branch. If no active or runnable backlog SPEC remains, report the drained board and stop.`
+   Before calling the tool, validate the payload shape exactly: `{ prompt: <one of the two prompts>,
+   target: { type: "project", projectId: <resolved project id>, environment: { type: "local" } } }`.
+   `projectId` belongs inside `target` only; do not add a duplicate top-level field.
    Omit `startingState`, `model`, and `thinking`: the task starts from the project's default `main`
    checkout and has no inherited conversation, turns, or parent context. Do not fork the current
    task, and do not create a worktree or Git branch.
-3. Do not send a second message: the exact command above is the task's only initial user message.
-4. If project resolution or task creation fails, report the failure and do not
-   retry by creating another task. The completed SPEC stays durable on the board, so the user can safely start
-   `$mp --feature --next --chain` manually.
+3. Do not send a second message: the selected exact command is the task's only initial user message.
+4. Record the hand-off outcome with fire-and-forget telemetry (`--agent chain-handoff`, including
+   `outcome=created|validation_retry|validation_failed|unknown` and the actual duration). If the
+   API returns a definitive pre-creation argument-validation error, correct the payload and retry
+   exactly once. Do not retry a timeout, transport error, or any response where task creation is
+   uncertain. If the one retry fails, or project resolution fails, report the failure and leave the
+   completed SPEC durable on the board; do not ask the user to recreate the continuation manually.
 
 
 ---

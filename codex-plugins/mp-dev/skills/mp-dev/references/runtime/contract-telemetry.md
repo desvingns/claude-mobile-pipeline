@@ -38,6 +38,8 @@ Record points (one call each, regardless of verdict):
 | `tester` | after the Tester step resolves | from payload validity; `tests_added=<N>` |
 | `architect` | after a `PREFLIGHT` capsule resolves | `pass`; `verdict=<patch_allowed\|design_decision_required>;gate_auto=<0\|1>` |
 | `phase` | once per workflow phase boundary (see below) | `pass`; `phase=<name>;human_wait_ms=<N>` |
+| `staleness` | after the backlog staleness pre-check | `pass` for verified auto-close or fresh; `partial` for ambiguous; `outcome=<auto_closed\|auto_rescoped\|auto_proceeded\|fresh\|ambiguous>;staleness_auto_closed=<0\|1>;staleness_auto_proceeded=<0\|1>` |
+| `chain-handoff` | after every Codex successor-task creation attempt | `pass` when created, else `fail`; `outcome=<created\|validation_retry\|validation_failed\|unknown>;retry=<0\|1>` |
 | `feedback` | the post-ship feedback question (see **Post-ship** below) | `score=<1-5>` |
 
 **Every agent you spawn gets an event — including the ones that passed.** A step that ran and is
