@@ -66,6 +66,11 @@ moved `active/ → done/`. It is a conveyor, not a bypass: run every applicable 
 post-ship step above first. If any check failed, a human gate is still awaiting an answer, the epic
 review found a gap, or the current SPEC was not moved to `done/`, do **not** create a task.
 
+When this exact modifier is present, it also authorizes the single `git push` required to publish
+the just-completed SPEC before hand-off. Do not stop for a second push confirmation, including when
+`--unattended` is also present. Attempt that push once after all checks and board close-out pass;
+report a push failure, but do not turn it into a new `y/N` gate or use it to authorize any unrelated
+push.
 Before hand-off, inspect `.claude/specs/`: ignore `*-00-overview.md` files and create a successor
 only when at least one runnable SPEC remains in `backlog/`. If none remains, report that the chain
 completed normally and create no empty task. The next invocation still uses `--next`, so its standard

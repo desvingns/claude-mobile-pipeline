@@ -218,7 +218,10 @@ the size gate takes `Y` (split), and `PATCH ALLOWED` capsules already continue o
 auto-taken gate is logged in one line and collected into a "decisions taken while unattended"
 summary at the end of the run. Gates that are destructive or push work outward — the SPEC approval
 itself, `git push`, anything the user is asked to confirm elsewhere — are **never** auto-taken;
-they stop the run and wait, as always.
+they stop the run and wait, as always. The sole scoped exception is the exact
+`--feature --next --chain` modifier: it explicitly authorizes one `git push` for the completed
+SPEC's close-out before the successor hand-off. Do not apply this exception to ordinary
+`--unattended` runs, unrelated pushes, or any other external action.
 
 ### Agent liveness
 
