@@ -6,6 +6,19 @@ This repo uses [Semantic Versioning](https://semver.org/) â€” see `README.md` â†
 
 ## [Unreleased]
 
+## [1.17.2] - 2026-08-29
+
+### Fixed
+- **Codex chain continuation now preserves unattended policy.** A successor task receives
+  `--unattended` when the initiating run explicitly skipped human gates, including equivalent
+  natural-language instructions, so advisory gates do not strand the conveyor in a fresh task.
+- **Already-delivered backlog SPECs are closed from verified evidence.** The staleness pre-check now
+  runs a targeted verification and auto-closes only when the acceptance evidence passes; it no
+  longer asks the user to confirm a fact the runtime can establish itself.
+- **Chain hand-off validation distinguishes safe retries from uncertain outcomes.** A malformed
+  `create_thread` payload may be corrected and retried once before creation; timeouts and unknown
+  outcomes are never retried, and every attempt is visible to run telemetry.
+
 ## [1.17.1] - 2026-08-22
 
 ### Fixed

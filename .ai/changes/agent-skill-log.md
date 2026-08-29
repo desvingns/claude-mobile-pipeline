@@ -367,6 +367,14 @@ reason: Pipeline declared a cold-start bug fixed twice over because (1) Develope
 affects: claude, codex
 by: mp-improve
 
+## 2026-08-29T08:00-chain-autonomy-and-staleness
+type: fix
+target: templates/common/commands/runtime/{feature,contract-post-ship,contract-backlog,contract-telemetry}.md, templates/common/commands/{{PREFIX}}.md
+summary: verified staleness evidence auto-closes delivered backlog SPECs, unattended policy is carried into fresh Codex chain tasks, and hand-off validation/retry outcomes are telemetry-visible
+reason: a fresh chain task asked for a redundant delivered-confirmation gate and an earlier malformed create_thread payload forced a manual restart because policy propagation and pre-creation retry rules were missing
+affects: claude, codex
+by: codex
+
 ## 2026-08-22T22:00-codex-github-chain-reliability
 type: fix
 target: templates/common/commands/runtime/{contract-feature-implementation,bugfix,contract-post-ship}.md, templates/dev/codex/skills/mp-dev/SKILL.md, tests/test-{chain-contract,github-push-contract}.sh, VERSION, CHANGELOG.md

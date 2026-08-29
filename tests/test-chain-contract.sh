@@ -25,6 +25,11 @@ if grep -Fq -- 'fork_thread' "$POST_SHIP"; then
   exit 1
 fi
 grep -Fq -- 'Do not send a second message' "$POST_SHIP"
+grep -Fq -- 'Preserve the current unattended policy' "$POST_SHIP"
+grep -Fq -- '--feature --next --chain --unattended now' "$POST_SHIP"
+grep -Fq -- 'definitive pre-creation argument-validation error' "$POST_SHIP"
+grep -Fq -- 'exactly once' "$POST_SHIP"
+grep -Fq -- 'chain-handoff' "$POST_SHIP"
 if grep -Fq -- 'send that task exactly' "$POST_SHIP"; then
   echo 'chain-contract: Codex runtime must pass the prompt during create_thread' >&2
   exit 1
@@ -44,6 +49,11 @@ if grep -Fq -- 'fork_thread' "$CODEX_RUNTIME/contract-post-ship.md"; then
 fi
 grep -Fq -- '$mp --feature --next --chain' "$CODEX_RUNTIME/contract-post-ship.md"
 grep -Fq -- 'Do not send a second message' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'Preserve the current unattended policy' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- '--feature --next --chain --unattended now' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'definitive pre-creation argument-validation error' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'exactly once' "$CODEX_RUNTIME/contract-post-ship.md"
+grep -Fq -- 'chain-handoff' "$CODEX_RUNTIME/contract-telemetry.md"
 if grep -Fq -- 'send that task exactly' "$CODEX_RUNTIME/contract-post-ship.md"; then
   echo 'chain-contract: generated Codex runtime still sends a second prompt' >&2
   exit 1
@@ -56,5 +66,13 @@ if grep -R -Eq '<!-- /?tool:' "$CODEX_RUNTIME" "$CLAUDE_RUNTIME"; then
   echo 'chain-contract: tool marker leaked into generated runtime' >&2
   exit 1
 fi
+
+grep -Fq -- 'verified auto-close' "$FEATURE"
+grep -Fq -- 'staleness_auto_closed=1' "$FEATURE"
+if grep -Fq -- 'Close as already delivered? (y/N)' "$FEATURE"; then
+  echo 'chain-contract: verified staleness must not ask for an already-delivered confirmation' >&2
+  exit 1
+fi
+grep -Fq -- 'skip all human' "$ROUTER"
 
 printf '%s\n' 'chain-contract: pass'

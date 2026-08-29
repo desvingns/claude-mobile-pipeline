@@ -70,4 +70,6 @@ nobody is watching. Advisory gates then proceed on their recommended default and
 "decisions taken while unattended" summary at the end (see `contract-risk-routing.md`). Gates that
 are destructive or push work outward — SPEC approval, `git push`, anything that leaves the machine —
 still stop and wait. Use it for overnight or background runs, where an advisory gate is not a
-safety feature but a several-hour stall.
+safety feature but a several-hour stall. Natural-language instructions such as "skip all human
+gates", "пропускай все human gate", "do this without asking", or "run unattended" declare the same policy. Preserve that
+policy in a `--chain` successor prompt; do not infer it from `--chain` alone.

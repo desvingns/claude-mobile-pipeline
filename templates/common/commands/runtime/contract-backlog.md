@@ -9,7 +9,7 @@
 - `done/` — shipped SPECs, with `commit` + changed files filled in.
 - A SPEC's **status is the folder it lives in**; an epic's SPECs share a filename prefix `<epic-slug>-NN-<short>.md` (NN = order).
 
-**Lifecycle the orchestrator drives:** `--feature` Phase 1 writes a multi-SPEC feature's SPEC files into `backlog/` behind one y/N gate → on starting a SPEC, move `backlog/ → active/` and confirm it with the user before Phase 2 → on ship (Verifier pass / push), move `active/ → done/` and fill `commit` + `files` → when that ship was the epic's **last** SPEC, run the **Epic completion** review + close (below). Creating/moving these markdown files is a planning action the orchestrator may do directly; it never skips the human SPEC-approval gate.
+**Lifecycle the orchestrator drives:** `--feature` Phase 1 writes a multi-SPEC feature's SPEC files into `backlog/` behind one y/N gate → `--feature --next` / `--feature --backlog <slug>` consumes an already-approved SPEC without a second approval question, first applying the staleness verification in `feature.md` → on starting a non-stale SPEC, move `backlog/ → active/` and run Phase 2 → on ship (Verifier pass / push), move `active/ → done/` and fill `commit` + `files` → when that ship was the epic's **last** SPEC, run the **Epic completion** review + close (below). Creating/moving these markdown files is a planning action the orchestrator may do directly; it never silently treats incomplete evidence as delivered.
 
 ### Epic completion (final review + close)
 
