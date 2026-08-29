@@ -1,0 +1,7 @@
+## 2026-08-29T00:00-chain-push-authorization
+type: update
+target: templates/common/commands/{{PREFIX}}.md, templates/common/commands/runtime/contract-risk-routing.md, templates/common/commands/runtime/contract-rules-implementation.md, templates/common/commands/runtime/contract-post-ship.md
+summary: exact --feature --next --chain authorizes the current close-out push and prevents unattended chain handoff from stalling at a duplicate push gate
+reason: a completed chain run stopped before successor creation because unattended runs treated git push as an unconditional human gate even when the user explicitly requested chain continuation
+affects: claude, codex
+by: mp-improve-fallback

@@ -686,3 +686,11 @@ summary: retro_due is now an exactly-once advisory follow-up that never gates cl
 reason: keep optional retro nudges from making a completed feature or bugfix appear paused behind a user response
 affects: claude, codex
 by: mp-improve
+
+## 2026-08-29T00:00-chain-push-authorization
+type: update
+target: templates/common/commands/{{PREFIX}}.md, templates/common/commands/runtime/contract-risk-routing.md, templates/common/commands/runtime/contract-rules-implementation.md, templates/common/commands/runtime/contract-post-ship.md
+summary: exact --feature --next --chain authorizes the current close-out push and prevents unattended chain handoff from stalling at a duplicate push gate
+reason: a completed chain run stopped before successor creation because unattended runs treated git push as an unconditional human gate even when the user explicitly requested chain continuation
+affects: claude, codex
+by: mp-improve-fallback
